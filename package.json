@@ -1,0 +1,39 @@
+{
+  "name": "developer-detective",
+  "private": true,
+  "version": "0.1.0",
+  "description": "Narrative-driven learning platform for secure code review and ethical decision-making",
+  "workspaces": [
+    "shared",
+    "backend",
+    "frontend"
+  ],
+  "scripts": {
+    "build": "npm run build -w @dd/shared && npm run build -w @dd/backend && npm run build -w @dd/frontend",
+    "dev": "npm run dev -w @dd/backend & npm run dev -w @dd/frontend",
+    "dev:api": "npm run dev -w @dd/backend",
+    "dev:web": "npm run dev -w @dd/frontend",
+    "test": "npm run test -w @dd/backend",
+    "lint": "npm run lint -w @dd/backend && npm run lint -w @dd/frontend",
+    "typecheck": "npm run typecheck -w @dd/shared && npm run typecheck -w @dd/backend && npm run typecheck -w @dd/frontend",
+    "db:generate": "npm run db:generate -w @dd/backend",
+    "db:migrate": "npm run db:migrate -w @dd/backend",
+    "db:seed": "npm run db:seed -w @dd/backend",
+    "format": "prettier --write .",
+    "format:check": "prettier --check ."
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.15.0",
+    "eslint": "^9.15.0",
+    "eslint-config-prettier": "^9.1.0",
+    "eslint-plugin-vue": "^9.31.0",
+    "globals": "^15.12.0",
+    "prettier": "^3.3.3",
+    "typescript": "^5.6.3",
+    "typescript-eslint": "^8.15.0",
+    "vue-eslint-parser": "^9.4.3"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}
