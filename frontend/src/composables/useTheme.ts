@@ -9,7 +9,7 @@ const systemPrefersDark = ref(false);
 
 function read(): ThemePreference {
   const stored = localStorage.getItem(STORAGE_KEY);
-  return stored === 'light' || stored === 'dark' ? stored : 'system';
+  return stored === 'light' || stored === 'dark' || stored === 'system' ? stored : 'light';
 }
 
 function apply(value: ThemePreference) {
@@ -34,8 +34,7 @@ export function useTheme() {
   function set(value: ThemePreference) {
     preference.value = value;
     apply(value);
-    if (value === 'system') localStorage.removeItem(STORAGE_KEY);
-    else localStorage.setItem(STORAGE_KEY, value);
+    localStorage.setItem(STORAGE_KEY, value);
   }
 
   function toggle() {
