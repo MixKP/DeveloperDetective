@@ -1,0 +1,153 @@
+@import 'tailwindcss';
+
+/**
+ * Design tokens — the single source of colour, radius and spacing in the app.
+ *
+ * Raw hex is banned in components by ESLint (no-restricted-syntax on .vue files); this is
+ * the one place values are written down. Domain values map to these through design/theme.ts
+ * so components stay declarative.
+ *
+ * Two layers on purpose:
+ *   --dd-*        the raw palette, swapped wholesale by the dark theme
+ *   @theme inline aliases those into Tailwind utilities (bg-surface, text-muted, …)
+ * The indirection is what lets the theme switch at runtime rather than at build time.
+ */
+
+:root {
+  color-scheme: light;
+
+  --dd-bg: #f8fafc;
+  --dd-surface: #ffffff;
+  --dd-elevated: #f1f5f9;
+  --dd-border: #e2e8f0;
+  --dd-primary: #4f46e5;
+  --dd-primary-contrast: #ffffff;
+  --dd-text: #0f172a;
+  --dd-muted: #64748b;
+
+  /* Severity and ethical quality are the only two colour-coded signals in the product.
+     Everything else stays neutral so these actually read as signals. */
+  --dd-sev-critical: #dc2626;
+  --dd-sev-high: #d97706;
+  --dd-sev-medium: #0284c7;
+
+  --dd-quality-good: #059669;
+  --dd-quality-neutral: #d97706;
+  --dd-quality-bad: #dc2626;
+
+  /* The investigate screen is a dark IDE regardless of theme: inspecting code should feel
+     different from reading a report. */
+  --dd-code-bg: #0f172a;
+  --dd-code-surface: #1e293b;
+  --dd-code-text: #e2e8f0;
+  --dd-code-muted: #94a3b8;
+
+  --dd-radius: 0.75rem;
+  --dd-radius-sm: 0.375rem;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme='light']) {
+    color-scheme: dark;
+
+    --dd-bg: #0b1120;
+    --dd-surface: #131c31;
+    --dd-elevated: #1c2942;
+    --dd-border: #253352;
+    --dd-primary: #818cf8;
+    --dd-primary-contrast: #0b1120;
+    --dd-text: #e2e8f0;
+    --dd-muted: #94a3b8;
+
+    --dd-sev-critical: #f87171;
+    --dd-sev-high: #fbbf24;
+    --dd-sev-medium: #38bdf8;
+
+    --dd-quality-good: #34d399;
+    --dd-quality-neutral: #fbbf24;
+    --dd-quality-bad: #f87171;
+  }
+}
+
+/* An explicit choice always beats the OS preference, in both directions. */
+:root[data-theme='dark'] {
+  color-scheme: dark;
+
+  --dd-bg: #0b1120;
+  --dd-surface: #131c31;
+  --dd-elevated: #1c2942;
+  --dd-border: #253352;
+  --dd-primary: #818cf8;
+  --dd-primary-contrast: #0b1120;
+  --dd-text: #e2e8f0;
+  --dd-muted: #94a3b8;
+
+  --dd-sev-critical: #f87171;
+  --dd-sev-high: #fbbf24;
+  --dd-sev-medium: #38bdf8;
+
+  --dd-quality-good: #34d399;
+  --dd-quality-neutral: #fbbf24;
+  --dd-quality-bad: #f87171;
+}
+
+@theme inline {
+  --color-bg: var(--dd-bg);
+  --color-surface: var(--dd-surface);
+  --color-elevated: var(--dd-elevated);
+  --color-border: var(--dd-border);
+  --color-primary: var(--dd-primary);
+  --color-primary-contrast: var(--dd-primary-contrast);
+  --color-text: var(--dd-text);
+  --color-muted: var(--dd-muted);
+
+  --color-sev-critical: var(--dd-sev-critical);
+  --color-sev-high: var(--dd-sev-high);
+  --color-sev-medium: var(--dd-sev-medium);
+
+  --color-quality-good: var(--dd-quality-good);
+  --color-quality-neutral: var(--dd-quality-neutral);
+  --color-quality-bad: var(--dd-quality-bad);
+
+  --color-code-bg: var(--dd-code-bg);
+  --color-code-surface: var(--dd-code-surface);
+  --color-code-text: var(--dd-code-text);
+  --color-code-muted: var(--dd-code-muted);
+
+  --radius-token: var(--dd-radius);
+  --radius-token-sm: var(--dd-radius-sm);
+}
+
+/* Custom dark variant so `dark:` utilities follow the data-theme attribute as well as the
+   OS preference. Without this, Tailwind v4 would only honour prefers-color-scheme. */
+@custom-variant dark (&:where([data-theme='dark'], [data-theme='dark'] *));
+
+html,
+body,
+#app {
+  min-height: 100%;
+}
+
+body {
+  background-color: var(--dd-bg);
+  color: var(--dd-text);
+  font-family:
+    ui-sans-serif,
+    system-ui,
+    -apple-system,
+    'Segoe UI',
+    Roboto,
+    'Helvetica Neue',
+    sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Motion stays subtle: stage transitions and hint reveals only. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}
