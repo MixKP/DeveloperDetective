@@ -50,8 +50,27 @@ export class DrizzleScenarioCatalog implements ScenarioCatalog {
   }
 
   async findById(scenarioId: number): Promise<ScenarioContent | null> {
+    // Explicit columns, and note which ones are absent: root_cause, business_impact and
+    // remediation. Those are the debrief — gated content that GetScenarioDetail fetches
+    // through AnswerKey.debrief() only once the quiz is complete. A bare select() here
+    // would quietly load them into the same object the public payload is built from.
     const [scenario] = await this.db
-      .select()
+      .select({
+        id: scenarios.id,
+        slug: scenarios.slug,
+        title: scenarios.title,
+        summary: scenarios.summary,
+        severity: scenarios.severity,
+        tags: scenarios.tags,
+        estimatedMinutes: scenarios.estimatedMinutes,
+        language: scenarios.language,
+        briefSender: scenarios.briefSender,
+        briefSenderRole: scenarios.briefSenderRole,
+        briefSubject: scenarios.briefSubject,
+        briefReceivedAt: scenarios.briefReceivedAt,
+        briefBody: scenarios.briefBody,
+        briefObjectives: scenarios.briefObjectives,
+      })
       .from(scenarios)
       .where(eq(scenarios.id, scenarioId))
       .limit(1);

@@ -1,10 +1,12 @@
-import { ref } from 'vue';
+import { computed, ref } from 'vue';
 
 export type ThemePreference = 'light' | 'dark' | 'system';
 
 const STORAGE_KEY = 'dd.theme';
 
 const preference = ref<ThemePreference>(read());
+/** Tracks the OS setting so `system` stays live if the user changes it mid-session. */
+const systemPrefersDark = ref(false);
 
 function read(): ThemePreference {
   const stored = localStorage.getItem(STORAGE_KEY);
@@ -23,7 +25,21 @@ function apply(value: ThemePreference) {
   else root.setAttribute('data-theme', value);
 }
 
+const media = window.matchMedia('(prefers-color-scheme: dark)');
+systemPrefersDark.value = media.matches;
+media.addEventListener('change', (event) => {
+  systemPrefersDark.value = event.matches;
+});
+
 apply(preference.value);
+
+/**
+ * What the user is actually looking at, as opposed to what they asked for. Components must
+ * label themselves from this, not from `preference`.
+ */
+const isDark = computed(
+  () => preference.value === 'dark' || (preference.value === 'system' && systemPrefersDark.value),
+);
 
 export function useTheme() {
   function set(value: ThemePreference) {
@@ -34,11 +50,8 @@ export function useTheme() {
   }
 
   function toggle() {
-    const systemPrefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-    const currentlyDark =
-      preference.value === 'dark' || (preference.value === 'system' && systemPrefersDark);
-    set(currentlyDark ? 'light' : 'dark');
+    set(isDark.value ? 'light' : 'dark');
   }
 
-  return { preference, set, toggle };
+  return { preference, isDark, set, toggle };
 }

@@ -32,5 +32,11 @@ for (const signal of ['SIGTERM', 'SIGINT'] as const) {
     server.close(() => {
       void close().finally(() => process.exit(0));
     });
+
+    // server.close() waits for every open connection to end, and nginx holds keep-alive
+    // connections to this process. Without this the callback above would not fire inside
+    // Docker's grace period, SIGKILL would land, and the pool drain this handler exists to
+    // guarantee would never run.
+    server.closeAllConnections();
   });
 }

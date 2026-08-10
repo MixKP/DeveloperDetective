@@ -166,15 +166,15 @@ key committed to a public repository** (High).
 
 ## Commands
 
-| Command               | Does                                                                |
-| --------------------- | ------------------------------------------------------------------- |
-| `npm test`            | 107 tests — domain, application, API, content. No database required |
-| `npm run typecheck`   | All three workspaces                                                |
-| `npm run lint`        | Includes the architecture boundary rules                            |
-| `npm run format`      | Prettier                                                            |
-| `npm run db:generate` | Regenerate migrations after a schema change                         |
-| `npm run db:migrate`  | Apply migrations (direct connection)                                |
-| `npm run db:seed`     | Import scenario JSON (idempotent)                                   |
+| Command               | Does                                                                        |
+| --------------------- | --------------------------------------------------------------------------- |
+| `npm test`            | 114 tests — domain, application, API, content, stores. No database required |
+| `npm run typecheck`   | All three workspaces                                                        |
+| `npm run lint`        | Includes the architecture boundary rules                                    |
+| `npm run format`      | Prettier                                                                    |
+| `npm run db:generate` | Regenerate migrations after a schema change                                 |
+| `npm run db:migrate`  | Apply migrations (direct connection)                                        |
+| `npm run db:seed`     | Import scenario JSON (idempotent)                                           |
 
 The domain and application suites run with no network access at all, which is the point of
 keeping the domain framework-free.

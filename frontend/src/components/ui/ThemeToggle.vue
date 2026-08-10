@@ -3,11 +3,13 @@ import { computed } from 'vue';
 import { Moon, Sun } from 'lucide-vue-next';
 import { useTheme } from '@/composables/useTheme';
 
-const { preference, toggle } = useTheme();
+const { isDark, toggle } = useTheme();
 
-const label = computed(() =>
-  preference.value === 'dark' ? 'Switch to light theme' : 'Switch to dark theme',
-);
+// Branch on the RESOLVED theme, not on the stored preference. With preference `system` on a
+// dark OS the page renders dark, so labelling the button from the preference alone would
+// announce "switch to dark theme" while the click actually switches to light — an aria-label
+// that states the opposite of what the control does.
+const label = computed(() => (isDark.value ? 'Switch to light theme' : 'Switch to dark theme'));
 </script>
 
 <template>
@@ -18,7 +20,7 @@ const label = computed(() =>
     :aria-label="label"
     @click="toggle"
   >
-    <Moon v-if="preference === 'dark'" class="size-4" aria-hidden="true" />
+    <Moon v-if="isDark" class="size-4" aria-hidden="true" />
     <Sun v-else class="size-4" aria-hidden="true" />
   </button>
 </template>

@@ -8,3 +8,6 @@ dist/
 coverage/
 *.log
 .vite/
+
+# tsc -b writes this, and a stale committed copy can make a local build skip typechecking.
+*.tsbuildinfo

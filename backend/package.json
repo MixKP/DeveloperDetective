@@ -4,7 +4,7 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "dev": "tsx watch src/main.ts",
+    "dev": "tsx watch --env-file-if-exists=../.env src/main.ts",
     "build": "tsc -p tsconfig.json",
     "start": "node dist/main.js",
     "test": "vitest run",
@@ -13,8 +13,8 @@
     "typecheck": "tsc -p tsconfig.test.json",
     "lint": "eslint .",
     "db:generate": "drizzle-kit generate",
-    "db:migrate": "tsx src/platform/db/migrate.ts",
-    "db:seed": "tsx src/modules/catalog/infrastructure/seed/run.ts"
+    "db:migrate": "tsx --env-file-if-exists=../.env src/platform/db/migrate.ts",
+    "db:seed": "tsx --env-file-if-exists=../.env src/modules/catalog/infrastructure/seed/run.ts"
   },
   "dependencies": {
     "@dd/shared": "*",

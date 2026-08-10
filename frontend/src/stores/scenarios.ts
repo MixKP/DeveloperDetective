@@ -59,9 +59,16 @@ export const useScenariosStore = defineStore('scenarios', () => {
       question.explanation = result.explanation;
     }
 
-    // Vulnerable lines only ever arrive with the detail payload, so an unlock means the
-    // code viewer is now showing stale (empty) highlights until we refetch.
-    if (result.justUnlockedVulnerableLines) {
+    // Gated content only ever arrives with the detail payload, so any answer that opens a
+    // gate leaves the cached payload stale:
+    //
+    //  - an unlock means the code viewer is still showing empty highlights
+    //  - finishing the quiz means `debrief` is still null, and the debrief screen would
+    //    render nothing at all — the entire payoff of the case
+    //
+    // The router guard cannot save us here: fetchDetail early-returns for the scenario
+    // already loaded, so navigating to the debrief would reuse this stale payload.
+    if (result.justUnlockedVulnerableLines || (result.state.quizComplete && !scenario.debrief)) {
       await fetchDetail(scenario.id, true);
     }
     return result;

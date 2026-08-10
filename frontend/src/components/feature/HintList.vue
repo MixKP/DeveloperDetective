@@ -19,7 +19,7 @@ const remaining = computed(() => props.total - props.revealed.length);
     <TransitionGroup name="hint">
       <p
         v-for="(hint, index) in revealed"
-        :key="hint"
+        :key="index"
         class="flex gap-2 rounded-[var(--dd-radius-sm)] bg-elevated px-3 py-2 text-sm text-muted"
       >
         <Lightbulb class="mt-0.5 size-3.5 shrink-0 text-sev-high" aria-hidden="true" />

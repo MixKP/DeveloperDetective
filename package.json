@@ -13,7 +13,7 @@
     "dev": "npm run dev -w @dd/backend & npm run dev -w @dd/frontend",
     "dev:api": "npm run dev -w @dd/backend",
     "dev:web": "npm run dev -w @dd/frontend",
-    "test": "npm run test -w @dd/backend",
+    "test": "npm run test -w @dd/backend && npm run test -w @dd/frontend",
     "lint": "npm run lint -w @dd/backend && npm run lint -w @dd/frontend",
     "typecheck": "npm run typecheck -w @dd/shared && npm run typecheck -w @dd/backend && npm run typecheck -w @dd/frontend",
     "db:generate": "npm run db:generate -w @dd/backend",
@@ -34,6 +34,7 @@
     "vue-eslint-parser": "^9.4.3"
   },
   "engines": {
-    "node": ">=20"
+    "// node": "22.9 is the floor because the backend scripts use --env-file-if-exists, which does not exist before it",
+    "node": ">=22.9"
   }
 }

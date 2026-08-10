@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { onBeforeUnmount, ref, watch } from 'vue';
+import { onBeforeUnmount, shallowRef, watch } from 'vue';
 import type * as Monaco from 'monaco-editor';
 import { VueMonacoEditor } from '@guolao/vue-monaco-editor';
 import { setupMonaco } from '@/monaco';
@@ -16,7 +16,10 @@ const props = withDefaults(
 
 setupMonaco();
 
-const editor = ref<Monaco.editor.IStandaloneCodeEditor | null>(null);
+// shallowRef, not ref: a deep ref would wrap the whole Monaco editor in a reactive Proxy,
+// making Vue walk a large cyclic object graph on assignment and handing Monaco a proxied
+// `this` that can defeat its internal identity checks.
+const editor = shallowRef<Monaco.editor.IStandaloneCodeEditor | null>(null);
 let decorations: Monaco.editor.IEditorDecorationsCollection | null = null;
 
 /**
