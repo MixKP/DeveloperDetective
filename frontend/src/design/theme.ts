@@ -57,7 +57,17 @@ export const stageLabels: Record<Stage, string> = {
   debrief: 'Debrief',
 };
 
-/** True when `target` is at or before the furthest stage the server says is reachable. */
-export function stageReachable(target: Stage, furthest: Stage): boolean {
-  return stageOrder.indexOf(target) <= stageOrder.indexOf(furthest);
+/**
+ * Which stages the learner may navigate to.
+ *
+ * Only the debrief is gated, and only on whether the quiz is finished. An earlier version
+ * compared against the run's reported `stage`, which deadlocked the flow: a learner who had
+ * read the code but not yet answered anything reported stage `investigate`, so the guard
+ * refused them the quiz — the one place they could go to make progress.
+ *
+ * This matches ADR 0005: the brief, the repository and the questions are all freely
+ * revisitable; the debrief is the answer, so it waits until the work is done.
+ */
+export function stageReachable(target: Stage, quizComplete: boolean): boolean {
+  return target !== 'debrief' || quizComplete;
 }

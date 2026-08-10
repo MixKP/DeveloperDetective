@@ -1,7 +1,6 @@
 <script setup lang="ts">
 import { computed } from 'vue';
 import { RouterLink, RouterView } from 'vue-router';
-import type { Stage } from '@dd/shared';
 import SeverityBadge from '@/components/ui/SeverityBadge.vue';
 import { stageLabels, stageOrder, stageReachable } from '@/design/theme';
 import { useScenariosStore } from '@/stores/scenarios';
@@ -10,7 +9,7 @@ const scenarios = useScenariosStore();
 
 // The detail is already loaded by the router guard before this layout renders.
 const scenario = computed(() => scenarios.current);
-const furthest = computed<Stage>(() => scenario.value?.state.stage ?? 'brief');
+const quizComplete = computed(() => scenario.value?.state.quizComplete === true);
 </script>
 
 <template>
@@ -35,9 +34,15 @@ const furthest = computed<Stage>(() => scenario.value?.state.stage ?? 'brief');
         :to="{ name: stage, params: { id: scenario.id } }"
         class="border-b-2 px-3 py-2 text-sm transition"
         :class="
-          stageReachable(stage, furthest)
+          stageReachable(stage, quizComplete)
             ? 'border-transparent text-muted hover:text-text'
             : 'pointer-events-none border-transparent text-muted/40'
+        "
+        :aria-disabled="!stageReachable(stage, quizComplete)"
+        :title="
+          stageReachable(stage, quizComplete)
+            ? undefined
+            : 'Solve every question to unlock the debrief'
         "
         active-class="!border-primary !text-text font-medium"
       >

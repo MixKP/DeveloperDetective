@@ -166,18 +166,44 @@ key committed to a public repository** (High).
 
 ## Commands
 
-| Command               | Does                                                                        |
-| --------------------- | --------------------------------------------------------------------------- |
-| `npm test`            | 114 tests — domain, application, API, content, stores. No database required |
-| `npm run typecheck`   | All three workspaces                                                        |
-| `npm run lint`        | Includes the architecture boundary rules                                    |
-| `npm run format`      | Prettier                                                                    |
-| `npm run db:generate` | Regenerate migrations after a schema change                                 |
-| `npm run db:migrate`  | Apply migrations (direct connection)                                        |
-| `npm run db:seed`     | Import scenario JSON (idempotent)                                           |
+| Command                    | Does                                                                        |
+| -------------------------- | --------------------------------------------------------------------------- |
+| `npm test`                 | 114 tests — domain, application, API, content, stores. No database required |
+| `npm run test:integration` | 21 tests — Drizzle repositories and the seed against real PostgreSQL        |
+| `npm run test:e2e`         | 7 tests — the full journey in a real browser (Playwright)                   |
+| `npm run test:all`         | All three levels                                                            |
+| `npm run typecheck`        | All three workspaces                                                        |
+| `npm run lint`             | Includes the architecture boundary rules                                    |
+| `npm run format`           | Prettier                                                                    |
+| `npm run db:generate`      | Regenerate migrations after a schema change                                 |
+| `npm run db:migrate`       | Apply migrations (direct connection)                                        |
+| `npm run db:seed`          | Import scenario JSON (idempotent)                                           |
 
 The domain and application suites run with no network access at all, which is the point of
 keeping the domain framework-free.
+
+### The four levels, and what each one is for
+
+| Level                       | Runs against      | Catches                                                                           |
+| --------------------------- | ----------------- | --------------------------------------------------------------------------------- |
+| **Unit** (domain, stores)   | nothing           | Business rules: scoring, hint progression, the reveal gate                        |
+| **API** (supertest + fakes) | in-memory fakes   | Validation, error mapping, and the answer-key contract                            |
+| **Integration**             | a real PostgreSQL | Wrong SQL, jsonb that does not round-trip, upserts that conflict on the wrong key |
+| **End-to-end**              | a real browser    | The seams: router guards, store caching, Monaco layout                            |
+
+Integration and e2e need a database:
+
+```bash
+docker run -d --name dd-pg -p 5432:5432 -e POSTGRES_PASSWORD=dev postgres:16
+npm run db:migrate && npm run db:seed
+npm run test:integration    # creates and drops its own dd_test database
+npm run test:e2e            # starts the API and the SPA itself
+```
+
+Each level earns its place. The e2e suite found a progression deadlock that every layer
+below it reported as healthy: the router guard treated the run's reported stage as a
+permission, so a learner who had read the code but not yet answered anything was refused
+the quiz — the only place they could go to make progress.
 
 ---
 

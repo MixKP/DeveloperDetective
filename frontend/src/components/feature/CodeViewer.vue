@@ -88,15 +88,25 @@ onBeforeUnmount(() => {
       </span>
     </header>
 
-    <VueMonacoEditor
-      :value="code"
-      :language="language"
-      :path="path"
-      theme="vs-dark"
-      :options="options"
-      class="h-[60vh]"
-      @mount="onMount"
-    />
+    <!--
+      The height must be set HERE, on an element we control, and not as a class on
+      <VueMonacoEditor>. That component writes its `height` prop (default "100%") as an
+      inline style, which beats any utility class. With no definite height in the chain the
+      editor sizes to its own content, `automaticLayout` observes the change and relayouts,
+      the content grows again — and the page stretches further every time you scroll.
+    -->
+    <div class="h-[60vh] min-h-80">
+      <VueMonacoEditor
+        :value="code"
+        :language="language"
+        :path="path"
+        theme="vs-dark"
+        :options="options"
+        width="100%"
+        height="100%"
+        @mount="onMount"
+      />
+    </div>
   </div>
 </template>
 

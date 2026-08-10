@@ -1,0 +1,17 @@
+{
+  // Root-level TypeScript files live above every workspace tsconfig, so without this an
+  // editor finds no project for them, falls back to an inferred one with no `types`, and
+  // reports things like "Cannot find name 'process'" that `npm run typecheck` never sees.
+  "compilerOptions": {
+    "target": "ES2022",
+    "lib": ["ES2022"],
+    "module": "ESNext",
+    "moduleResolution": "Bundler",
+    "strict": true,
+    "verbatimModuleSyntax": true,
+    "skipLibCheck": true,
+    "noEmit": true,
+    "types": ["node"]
+  },
+  "include": ["playwright.config.ts"]
+}

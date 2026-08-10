@@ -11,3 +11,7 @@ coverage/
 
 # tsc -b writes this, and a stale committed copy can make a local build skip typechecking.
 *.tsbuildinfo
+
+# Playwright artifacts
+playwright-report/
+test-results/

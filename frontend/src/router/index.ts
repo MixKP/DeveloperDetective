@@ -58,9 +58,9 @@ router.beforeEach(async (to) => {
     return { name: 'dashboard' };
   }
 
-  const furthest = scenarios.current?.state.stage ?? 'brief';
-  if (!stageReachable(to.name, furthest)) {
-    return { name: furthest, params: { id: scenarioId } };
+  if (!stageReachable(to.name, scenarios.current?.state.quizComplete === true)) {
+    // Only the debrief is ever blocked, and the place to send them is the work itself.
+    return { name: 'quiz', params: { id: scenarioId } };
   }
   return true;
 });

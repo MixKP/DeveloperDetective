@@ -37,6 +37,71 @@ jobs:
       - name: Check formatting
         run: npm run format:check
 
+  # Integration and e2e need a real database, so they are separate jobs. Keeping them out
+  # of `verify` is deliberate: that job must stay runnable with nothing provisioned.
+  integration:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_PASSWORD: dev
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd pg_isready --health-interval 5s --health-timeout 5s --health-retries 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 22, cache: npm }
+      - run: npm ci
+      - run: npm run build -w @dd/shared
+
+      # globalSetup creates, migrates and seeds a dedicated dd_test database.
+      - name: Integration tests (Drizzle against real PostgreSQL)
+        run: npm run test:integration
+        env:
+          TEST_ADMIN_URL: postgresql://postgres:dev@localhost:5432/postgres
+
+  e2e:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_PASSWORD: dev
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd pg_isready --health-interval 5s --health-timeout 5s --health-retries 10
+    env:
+      # No pooler locally, so both urls are the same. Against Supabase they differ.
+      DATABASE_URL: postgresql://postgres:dev@localhost:5432/postgres
+      DIRECT_DATABASE_URL: postgresql://postgres:dev@localhost:5432/postgres
+      NODE_ENV: development
+      API_PORT: 3000
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 22, cache: npm }
+      - run: npm ci
+      - run: npm run build -w @dd/shared
+
+      - run: npx playwright install --with-deps chromium
+
+      - name: Prepare the database
+        run: npm run db:migrate && npm run db:seed
+
+      # CI=true turns off reuseExistingServer, so Playwright starts the API and the SPA
+      # itself and tears them down afterwards.
+      - name: End-to-end tests
+        run: npm run test:e2e
+
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: playwright-report
+          path: playwright-report/
+          retention-days: 7
+
   images:
     runs-on: ubuntu-latest
     steps:

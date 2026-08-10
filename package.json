@@ -15,15 +15,19 @@
     "dev:web": "npm run dev -w @dd/frontend",
     "test": "npm run test -w @dd/backend && npm run test -w @dd/frontend",
     "lint": "npm run lint -w @dd/backend && npm run lint -w @dd/frontend",
-    "typecheck": "npm run typecheck -w @dd/shared && npm run typecheck -w @dd/backend && npm run typecheck -w @dd/frontend",
+    "typecheck": "npm run typecheck -w @dd/shared && npm run typecheck -w @dd/backend && npm run typecheck -w @dd/frontend && tsc -p e2e/tsconfig.json && tsc -p tsconfig.json",
     "db:generate": "npm run db:generate -w @dd/backend",
     "db:migrate": "npm run db:migrate -w @dd/backend",
     "db:seed": "npm run db:seed -w @dd/backend",
     "format": "prettier --write .",
-    "format:check": "prettier --check ."
+    "format:check": "prettier --check .",
+    "test:e2e": "playwright test",
+    "test:integration": "npm run test:integration -w @dd/backend",
+    "test:all": "npm test && npm run test:integration && npm run test:e2e"
   },
   "devDependencies": {
     "@eslint/js": "^9.15.0",
+    "@playwright/test": "^1.62.1",
     "eslint": "^9.15.0",
     "eslint-config-prettier": "^9.1.0",
     "eslint-plugin-vue": "^9.31.0",

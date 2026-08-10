@@ -32,7 +32,7 @@ function submit() {
 </script>
 
 <template>
-  <BaseCard class="flex flex-col gap-4 p-5">
+  <BaseCard as="article" class="flex flex-col gap-4 p-5">
     <header class="flex items-start justify-between gap-3">
       <div>
         <div class="flex items-center gap-2">
