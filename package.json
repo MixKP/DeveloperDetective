@@ -2,6 +2,7 @@
   "name": "developer-detective",
   "private": true,
   "version": "0.1.0",
+  "type": "module",
   "description": "Narrative-driven learning platform for secure code review and ethical decision-making",
   "workspaces": [
     "shared",
