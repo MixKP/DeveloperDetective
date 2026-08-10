@@ -14,14 +14,16 @@ Course project for _Ethics and Professionalism for Software Engineers (953420)_.
 ## Quick start
 
 ```bash
-cp .env.example .env      # then fill in the two Supabase connection strings
+cp .env.example .env       # already points at the local stack; nothing to fill in
 npm install
-npm run db:migrate        # explicit deploy step, not run on container boot
-npm run db:seed           # idempotent; safe to re-run
+npx supabase start         # PostgreSQL, Studio and friends, in Docker
+npm run db:migrate         # explicit deploy step, not run on container boot
+npm run db:seed            # idempotent; safe to re-run
 docker compose up --build
 ```
 
-The app is then at **http://localhost:8080**.
+The app is then at **http://localhost:8080**, and Supabase Studio at
+**http://localhost:54323**.
 
 ### Local development without Docker
 
@@ -30,22 +32,58 @@ npm run dev:api           # http://localhost:3000
 npm run dev:web           # http://localhost:5173, proxies /api to :3000
 ```
 
+`npx supabase stop` when you are done; add `--no-backup` to discard the local data.
+
 ---
 
-## Supabase setup
+## The database: two targets
 
-The database is a managed Supabase PostgreSQL instance and deliberately **does not run in
-Docker** — one less container, no volume to lose, and everyone on the team sees the same data.
+The database never runs as a service in `docker-compose.yml` — no db container there, no
+volume to lose, and no healthcheck ordering to get wrong. From the compose file's point of
+view the database is simply a host the API dials out to. Which host is the only thing that
+changes:
 
-Create a project, then copy both connection strings from
-**Project Settings → Database → Connection string** into `.env`:
+| Target                             | For                                        | Started by       |
+| ---------------------------------- | ------------------------------------------ | ---------------- |
+| **Local stack** (`supabase start`) | day-to-day development, tests, experiments | the Supabase CLI |
+| **Managed project** (supabase.com) | what the team shares, and any demo         | already running  |
+
+Switch by commenting one pair of URLs in `.env` and uncommenting the other. It is the only
+switch, so it is worth knowing which one is live before running `db:seed`.
+
+### The local stack
+
+The CLI is a devDependency, so `npm install` is all the setup there is — no `brew`, and
+everyone gets the same version.
+
+|          |                                                  |
+| -------- | ------------------------------------------------ |
+| API      | http://localhost:54321                           |
+| Database | `postgresql://postgres:postgres@127.0.0.1:54322` |
+| Studio   | http://localhost:54323                           |
+| Mailpit  | http://localhost:54324                           |
+
+**The CLI is for `start` and `stop` only.** Do not reach for `supabase db push`, `db diff`
+or `link`. Drizzle owns the migrations in this repo and there is no `supabase/migrations/`
+directory — those commands would create a second, conflicting source of truth for the schema.
+
+One consequence of the API running in a container: `127.0.0.1` inside that container is the
+container itself, not your machine, so compose overrides `DATABASE_URL` with
+`DOCKER_DATABASE_URL` (`host.docker.internal`). Leave it set for the local stack, comment it
+out for the managed project — unset, it falls through to `DATABASE_URL` unchanged.
+
+### The managed project
+
+Copy both connection strings whole from **Project Settings → Database → Connection string**.
+Do not hand-edit the host: the pooler region is part of it, and a stale region fails with
+_"Tenant or user not found"_ rather than with anything mentioning regions.
 
 | Variable              | Port | Used by                 | Why                                  |
 | --------------------- | ---- | ----------------------- | ------------------------------------ |
 | `DATABASE_URL`        | 6543 | the running API         | Transaction pooler                   |
 | `DIRECT_DATABASE_URL` | 5432 | `db:migrate`, `db:seed` | DDL needs a session-level connection |
 
-Two things that will bite you if you skip them:
+Three things that will bite you if you skip them:
 
 1. **`prepare: false` is mandatory** on the pooled connection and is pinned in
    `platform/db/client.ts`. The pooler is PgBouncer in transaction mode, which hands a
@@ -53,9 +91,16 @@ Two things that will bite you if you skip them:
    Leave it on and the app works locally and then fails in the container with an opaque
    _"prepared statement does not exist"_.
 2. **Migrations must use the direct URL.** The pooler cannot run DDL reliably.
+3. **The dashboard's "direct connection" host (`db.<ref>.supabase.co`) is IPv6-only.** On an
+   IPv4-only network it is simply unreachable, which is why `DIRECT_DATABASE_URL` above is
+   the session pooler on port 5432 instead.
 
 The free tier **pauses a project after about a week of inactivity**. Check the dashboard the
 day before any demo.
+
+Deploying a schema change is `npm run db:migrate` with `.env` pointed at the managed project
+— the same command, a different target. `db:seed` upserts by natural key, so re-running it
+against shared data updates the content without invalidating anyone's progress.
 
 ---
 
@@ -178,6 +223,8 @@ key committed to a public repository** (High).
 | `npm run db:generate`      | Regenerate migrations after a schema change                                 |
 | `npm run db:migrate`       | Apply migrations (direct connection)                                        |
 | `npm run db:seed`          | Import scenario JSON (idempotent)                                           |
+| `npx supabase start`       | Start the local Supabase stack                                              |
+| `npx supabase stop`        | Stop it (`--no-backup` to discard the local data)                           |
 
 The domain and application suites run with no network access at all, which is the point of
 keeping the domain framework-free.
@@ -191,14 +238,17 @@ keeping the domain framework-free.
 | **Integration**             | a real PostgreSQL | Wrong SQL, jsonb that does not round-trip, upserts that conflict on the wrong key |
 | **End-to-end**              | a real browser    | The seams: router guards, store caching, Monaco layout                            |
 
-Integration and e2e need a database:
+Integration and e2e need a database — the local stack, not the shared one:
 
 ```bash
-docker run -d --name dd-pg -p 5432:5432 -e POSTGRES_PASSWORD=dev postgres:16
+npx supabase start
 npm run db:migrate && npm run db:seed
 npm run test:integration    # creates and drops its own dd_test database
 npm run test:e2e            # starts the API and the SPA itself
 ```
+
+The integration suite creates and drops databases, which is reason enough not to point it at
+the managed project.
 
 Each level earns its place. The e2e suite found a progression deadlock that every layer
 below it reported as healthy: the router guard treated the run's reported stage as a

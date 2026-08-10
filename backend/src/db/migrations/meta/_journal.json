@@ -15,6 +15,13 @@
       "when": 1786358518375,
       "tag": "0001_enable_rls",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1786386000000,
+      "tag": "0002_ensure_rls_trigger",
+      "breakpoints": true
     }
   ]
 }
