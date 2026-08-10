@@ -1,6 +1,6 @@
 import { readdir, readFile } from 'node:fs/promises';
 import path from 'node:path';
-import { eq } from 'drizzle-orm';
+import { and, eq, gte, notInArray } from 'drizzle-orm';
 import type { Database } from '../../../../platform/db/client.js';
 import { ethicalChoices, files, questions, scenarios } from '../schema.js';
 import { scenarioContentSchema, type ScenarioContentInput } from './contentSchema.js';
@@ -122,37 +122,43 @@ async function importOne(db: Database, content: ScenarioContentInput): Promise<v
   await pruneExtras(db, scenarioId, content);
 }
 
+/**
+ * Deletes rows the author removed. Each table is pruned by the same natural key it was
+ * upserted on: files by path, questions and choices by position, since the upserts above
+ * renumber `orderIndex` to match the array order every time.
+ *
+ * The content schema requires at least one file, so the path list is never empty.
+ */
 async function pruneExtras(
   db: Database,
   scenarioId: number,
   content: ScenarioContentInput,
 ): Promise<void> {
-  const keepPaths = new Set(content.files.map((f) => f.path));
-  const existingFiles = await db
-    .select({ id: files.id, path: files.path })
-    .from(files)
-    .where(eq(files.scenarioId, scenarioId));
-  for (const row of existingFiles) {
-    if (!keepPaths.has(row.path)) await db.delete(files).where(eq(files.id, row.id));
-  }
+  await db.delete(files).where(
+    and(
+      eq(files.scenarioId, scenarioId),
+      notInArray(
+        files.path,
+        content.files.map((file) => file.path),
+      ),
+    ),
+  );
 
-  const existingQuestions = await db
-    .select({ id: questions.id, orderIndex: questions.orderIndex })
-    .from(questions)
-    .where(eq(questions.scenarioId, scenarioId));
-  for (const row of existingQuestions) {
-    if (row.orderIndex >= content.questions.length) {
-      await db.delete(questions).where(eq(questions.id, row.id));
-    }
-  }
+  await db
+    .delete(questions)
+    .where(
+      and(
+        eq(questions.scenarioId, scenarioId),
+        gte(questions.orderIndex, content.questions.length),
+      ),
+    );
 
-  const existingChoices = await db
-    .select({ id: ethicalChoices.id, orderIndex: ethicalChoices.orderIndex })
-    .from(ethicalChoices)
-    .where(eq(ethicalChoices.scenarioId, scenarioId));
-  for (const row of existingChoices) {
-    if (row.orderIndex >= content.ethicalChoices.length) {
-      await db.delete(ethicalChoices).where(eq(ethicalChoices.id, row.id));
-    }
-  }
+  await db
+    .delete(ethicalChoices)
+    .where(
+      and(
+        eq(ethicalChoices.scenarioId, scenarioId),
+        gte(ethicalChoices.orderIndex, content.ethicalChoices.length),
+      ),
+    );
 }

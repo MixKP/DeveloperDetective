@@ -31,58 +31,56 @@ export interface InvestigationSnapshot {
  * Persisted as a single row, so the whole aggregate loads and saves atomically.
  */
 export class Investigation {
+  readonly learnerId: string;
+  readonly scenarioId: number;
+  readonly startedAt: Date;
+
+  /** Set and Map rather than the snapshot's array and record: membership is the only query. */
   private readonly solved: Set<number>;
   private readonly hints: Map<number, number>;
+  private wrongAttemptCount: number;
+  private unlockedVulnerableLines: boolean;
+  private chosenEthicalChoiceId: number | null;
+  private isCompleted: boolean;
+  private finishedAt: Date | null;
 
-  private constructor(
-    readonly learnerId: string,
-    readonly scenarioId: number,
-    solved: Set<number>,
-    hints: Map<number, number>,
-    private wrongAttemptCount: number,
-    private unlockedVulnerableLines: boolean,
-    private chosenEthicalChoiceId: number | null,
-    private isCompleted: boolean,
-    readonly startedAt: Date,
-    private finishedAt: Date | null,
-  ) {
-    this.solved = solved;
-    this.hints = hints;
+  /** The only way in, so `toSnapshot` below is its exact inverse and stays easy to check. */
+  private constructor(snapshot: InvestigationSnapshot) {
+    this.learnerId = snapshot.learnerId;
+    this.scenarioId = snapshot.scenarioId;
+    this.startedAt = snapshot.startedAt;
+    this.solved = new Set(snapshot.solvedQuestionIds);
+    this.hints = new Map(
+      Object.entries(snapshot.revealedHints).map(([questionId, count]) => [
+        Number(questionId),
+        count,
+      ]),
+    );
+    this.wrongAttemptCount = snapshot.wrongAttempts;
+    this.unlockedVulnerableLines = snapshot.vulnerableLinesUnlocked;
+    this.chosenEthicalChoiceId = snapshot.ethicalChoiceId;
+    this.isCompleted = snapshot.completed;
+    this.finishedAt = snapshot.completedAt;
   }
 
   static start(learnerId: string, scenarioId: number, now: Date = new Date()): Investigation {
-    return new Investigation(
+    return new Investigation({
       learnerId,
       scenarioId,
-      new Set(),
-      new Map(),
-      0,
-      false,
-      null,
-      false,
-      now,
-      null,
-    );
+      solvedQuestionIds: [],
+      revealedHints: {},
+      wrongAttempts: 0,
+      vulnerableLinesUnlocked: false,
+      ethicalChoiceId: null,
+      completed: false,
+      startedAt: now,
+      completedAt: null,
+    });
   }
 
   /** Rebuild from persistence. The repository is the only legitimate caller. */
-  static fromSnapshot(s: InvestigationSnapshot): Investigation {
-    const hints = new Map<number, number>();
-    for (const [questionId, count] of Object.entries(s.revealedHints)) {
-      hints.set(Number(questionId), count);
-    }
-    return new Investigation(
-      s.learnerId,
-      s.scenarioId,
-      new Set(s.solvedQuestionIds),
-      hints,
-      s.wrongAttempts,
-      s.vulnerableLinesUnlocked,
-      s.ethicalChoiceId,
-      s.completed,
-      s.startedAt,
-      s.completedAt,
-    );
+  static fromSnapshot(snapshot: InvestigationSnapshot): Investigation {
+    return new Investigation(snapshot);
   }
 
   toSnapshot(): InvestigationSnapshot {

@@ -8,3 +8,6 @@ backend/src/modules/catalog/infrastructure/seed/scenarios
 
 playwright-report
 test-results
+
+# Scratch state written by `supabase start`, not source.
+supabase/.temp

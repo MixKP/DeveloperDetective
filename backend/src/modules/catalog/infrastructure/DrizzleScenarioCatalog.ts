@@ -17,6 +17,21 @@ import { ethicalChoices, files, questions, scenarios } from './schema.js';
  * secrets are reachable only through DrizzleAnswerKey, which is the sibling of this class
  * and the only file allowed to name those columns.
  */
+/**
+ * The public shape of a question, in one place so there is a single list to audit. Note what
+ * is missing: `correctOption`, `explanation` and the hint *text*. Only the hint count leaves
+ * this file — the text comes one purchase at a time from AnswerKey.
+ */
+const publicQuestionColumns = {
+  id: questions.id,
+  scenarioId: questions.scenarioId,
+  kind: questions.kind,
+  prompt: questions.prompt,
+  options: questions.options,
+  orderIndex: questions.orderIndex,
+  hintsTotal: sql<number>`jsonb_array_length(${questions.hints})::int`,
+};
+
 export class DrizzleScenarioCatalog implements ScenarioCatalog {
   constructor(private readonly db: Database) {}
 
@@ -128,16 +143,7 @@ export class DrizzleScenarioCatalog implements ScenarioCatalog {
 
   async findQuestion(questionId: number): Promise<QuestionContent | null> {
     const [row] = await this.db
-      .select({
-        id: questions.id,
-        scenarioId: questions.scenarioId,
-        kind: questions.kind,
-        prompt: questions.prompt,
-        options: questions.options,
-        orderIndex: questions.orderIndex,
-        // The count, never the text. Hint text comes one purchase at a time from AnswerKey.
-        hintsTotal: sql<number>`jsonb_array_length(${questions.hints})::int`,
-      })
+      .select(publicQuestionColumns)
       .from(questions)
       .where(eq(questions.id, questionId))
       .limit(1);
@@ -166,15 +172,7 @@ export class DrizzleScenarioCatalog implements ScenarioCatalog {
 
   private selectQuestions(scenarioId: number) {
     return this.db
-      .select({
-        id: questions.id,
-        scenarioId: questions.scenarioId,
-        kind: questions.kind,
-        prompt: questions.prompt,
-        options: questions.options,
-        orderIndex: questions.orderIndex,
-        hintsTotal: sql<number>`jsonb_array_length(${questions.hints})::int`,
-      })
+      .select(publicQuestionColumns)
       .from(questions)
       .where(eq(questions.scenarioId, scenarioId))
       .orderBy(asc(questions.orderIndex));

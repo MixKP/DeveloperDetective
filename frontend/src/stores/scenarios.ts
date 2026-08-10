@@ -16,40 +16,42 @@ export const useScenariosStore = defineStore('scenarios', () => {
    */
   const stage = computed<Stage>(() => current.value?.state.stage ?? 'brief');
 
-  function fail(e: unknown): never {
-    error.value = e instanceof ApiError ? e.message : 'Something went wrong.';
-    throw e;
-  }
-
-  async function fetchList() {
+  /**
+   * Runs a fetch with the loading flag and the error message wired up. Only the two loaders
+   * use it: the mutations below surface their failures through the component that called
+   * them, so a wrong answer must not paint the whole screen with an error banner.
+   */
+  async function load<T>(fetch: () => Promise<T>): Promise<T> {
     loading.value = true;
     error.value = null;
     try {
-      list.value = (await api.listScenarios()).scenarios;
+      return await fetch();
     } catch (e) {
-      fail(e);
+      error.value = e instanceof ApiError ? e.message : 'Something went wrong.';
+      throw e;
     } finally {
       loading.value = false;
     }
+  }
+
+  /** The mutations below all act on the loaded scenario, and none of them can create one. */
+  function requireCurrent(): ScenarioDetailResponse {
+    const scenario = current.value;
+    if (!scenario) throw new Error('No scenario loaded');
+    return scenario;
+  }
+
+  async function fetchList() {
+    list.value = await load(async () => (await api.listScenarios()).scenarios);
   }
 
   async function fetchDetail(id: number, force = false) {
     if (!force && current.value?.id === id) return;
-    loading.value = true;
-    error.value = null;
-    try {
-      current.value = await api.getScenario(id);
-    } catch (e) {
-      fail(e);
-    } finally {
-      loading.value = false;
-    }
+    current.value = await load(() => api.getScenario(id));
   }
 
   async function answer(questionId: number, optionId: string) {
-    const scenario = current.value;
-    if (!scenario) throw new Error('No scenario loaded');
-
+    const scenario = requireCurrent();
     const result = await api.answer(scenario.id, questionId, optionId);
     scenario.state = result.state;
 
@@ -75,9 +77,7 @@ export const useScenariosStore = defineStore('scenarios', () => {
   }
 
   async function requestHint(questionId: number) {
-    const scenario = current.value;
-    if (!scenario) throw new Error('No scenario loaded');
-
+    const scenario = requireCurrent();
     const result = await api.hint(scenario.id, questionId);
     scenario.state = result.state;
 
@@ -87,9 +87,7 @@ export const useScenariosStore = defineStore('scenarios', () => {
   }
 
   async function submitEthicalChoice(choiceId: number) {
-    const scenario = current.value;
-    if (!scenario) throw new Error('No scenario loaded');
-
+    const scenario = requireCurrent();
     const result = await api.submitProgress({
       scenarioId: scenario.id,
       completed: true,
