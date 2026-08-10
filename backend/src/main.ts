@@ -14,7 +14,7 @@ const app = createApiApp({
   answerKey,
   investigations: new DrizzleInvestigationRepository(db),
   pingDb: ping,
-  corsOrigins: env.NODE_ENV === 'production' ? [] : env.corsOrigins,
+  corsOrigins: env.corsOrigins,
 });
 
 const server = app.listen(env.API_PORT, () => {
