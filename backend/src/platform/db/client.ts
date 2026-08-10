@@ -10,10 +10,13 @@ export interface DbHandle {
   close: () => Promise<void>;
 }
 
-export function createDb(connectionString: string): DbHandle {
+export function createDb(
+  connectionString: string,
+  { maxConnections = 10 }: { maxConnections?: number } = {},
+): DbHandle {
   const client = postgres(connectionString, {
     prepare: false,
-    max: 10,
+    max: maxConnections,
     idle_timeout: 20,
     connect_timeout: 10,
   });
