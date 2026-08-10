@@ -31,7 +31,10 @@ export default function handler(req: IncomingMessage, res: ServerResponse): void
   }
 
   const rest = pairs.filter((pair) => !pair.startsWith(`${PATH_PARAM}=`));
+  res.setHeader('x-dd-received', requestUrl);
+
   req.url = `/api/${encodedPaths[0]}${rest.length > 0 ? `?${rest.join('&')}` : ''}`;
+  res.setHeader('x-dd-rebuilt', req.url);
 
   (app as unknown as (a: IncomingMessage, b: ServerResponse) => void)(req, res);
 }
