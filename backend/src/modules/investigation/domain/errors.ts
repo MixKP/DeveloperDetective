@@ -1,9 +1,3 @@
-/**
- * Domain errors. These describe a broken business rule, not an HTTP outcome — the domain
- * has no idea what a status code is. `platform/http/errors.ts` is the single place that
- * translates these into responses.
- */
-
 export type RuleViolationCode =
   | 'QUESTION_ALREADY_SOLVED'
   | 'NO_MORE_HINTS'

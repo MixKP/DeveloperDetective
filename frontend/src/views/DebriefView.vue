@@ -23,7 +23,6 @@ async function choose(choiceId: number) {
   error.value = null;
   try {
     await scenarios.submitEthicalChoice(choiceId);
-    // The dashboard tiles are stale the moment a case closes.
     await progress.fetch();
   } catch (e) {
     error.value = e instanceof ApiError ? e.message : 'Could not record that decision.';

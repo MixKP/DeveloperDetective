@@ -31,11 +31,6 @@ export class ApiError extends Error {
   }
 }
 
-/**
- * Responses are parsed through the same Zod schemas the backend validates against, not
- * merely cast. A contract drift then fails loudly at the fetch boundary instead of
- * surfacing as `undefined is not an object` three components deep.
- */
 async function request<T>(path: string, schema: ZodType<T>, init?: RequestInit): Promise<T> {
   let response: Response;
   try {
@@ -86,7 +81,6 @@ export const api = {
       body: JSON.stringify({ optionId }),
     }),
 
-  /** No body: which hint comes next is server state, not a client choice. */
   hint: (scenarioId: number, questionId: number): Promise<HintResponse> =>
     request(`/scenarios/${scenarioId}/questions/${questionId}/hint`, hintResponseSchema, {
       method: 'POST',

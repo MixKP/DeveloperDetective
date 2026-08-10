@@ -8,7 +8,6 @@ const TOTAL_QUESTIONS = 3;
 
 const newRun = () => Investigation.start(LEARNER, SCENARIO);
 
-/** Solve every question so the run reaches the debrief gate. */
 function solveWholeQuiz(run: Investigation) {
   run.recordAnswer(101, 'locate', true);
   run.recordAnswer(102, 'explain', true);
@@ -243,8 +242,6 @@ describe('Investigation — persistence round trip', () => {
   });
 
   it('rehydrates hint counts keyed by number, not by string', () => {
-    // Object.fromEntries stringifies keys; the rehydrate path has to undo that or every
-    // hint lookup silently returns 0 and hints become free.
     const run = Investigation.fromSnapshot({
       learnerId: LEARNER,
       scenarioId: SCENARIO,

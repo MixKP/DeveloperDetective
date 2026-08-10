@@ -4,22 +4,6 @@ import type { AnswerKey } from '../application/ports.js';
 import type { AnswerVerdict, DebriefContent, EthicalOutcomeContent } from '../domain/readModels.js';
 import { ethicalChoices, files, questions, scenarios } from './schema.js';
 
-/**
- * THE ONLY FILE IN THE CODEBASE THAT READS THE ANSWER KEY.
- *
- * `questions.correct_option`, `questions.explanation`, `questions.hints`,
- * `files.vulnerable_lines`, `ethical_choices.quality` and `ethical_choices.outcome` are
- * named here and nowhere else. Everything above this class receives verdicts and
- * individually authorized fragments, never the secrets in bulk.
- *
- * Two consequences worth being explicit about:
- *
- *  - `checkAnswer` compares in memory and returns a boolean. The correct option never
- *    leaves this method, so no caller can leak what it cannot hold.
- *  - `explanation` is returned only when the answer was right. The gating happens here as
- *    well as in the use case, because a leak of this particular field is unrecoverable —
- *    once a learner has seen the explanation, the question is spent.
- */
 export class DrizzleAnswerKey implements AnswerKey {
   constructor(private readonly db: Database) {}
 

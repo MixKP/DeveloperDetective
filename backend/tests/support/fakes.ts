@@ -20,7 +20,6 @@ export const GOOD_CHOICE = 501;
 export const BAD_CHOICE = 502;
 export const LEARNER = '3f9f1a3e-6a4e-4f2b-9c3d-1a2b3c4d5e6f';
 
-/** The secrets. Only the fake catalog sees this; nothing under test is handed the object. */
 const ANSWER_KEY_DATA: Record<
   number,
   { correct: string; explanation: string; hints: string[]; kind: QuestionContent['kind'] }
@@ -149,11 +148,6 @@ export class StubCatalog implements ScenarioCatalog {
   }
 }
 
-/**
- * Mirrors the real contract precisely, including the parts that make it safe: no method
- * returns the correct option, and `explanation` is null unless the answer was right. A
- * looser stub would let a leak pass the test suite.
- */
 export class StubAnswerKey implements AnswerKey {
   async checkAnswer(questionId: number, optionId: string): Promise<AnswerVerdict | null> {
     const entry = ANSWER_KEY_DATA[questionId];
@@ -203,7 +197,6 @@ export class StubAnswerKey implements AnswerKey {
 
 export class InMemoryInvestigationRepository implements InvestigationRepository {
   private readonly rows = new Map<string, Investigation>();
-  /** Lets tests assert that a use case actually persisted, rather than only mutating. */
   saveCount = 0;
 
   private key(learnerId: string, scenarioId: number) {

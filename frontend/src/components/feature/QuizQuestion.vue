@@ -77,8 +77,6 @@ function submit() {
       </label>
     </fieldset>
 
-    <!-- Shown only once solved: the API does not send an explanation for an open question,
-         so there is nothing here to reveal early even from devtools. -->
     <p
       v-if="question.solved && question.explanation"
       class="rounded-[var(--dd-radius-sm)] bg-quality-good/10 px-3 py-2 text-sm text-quality-good"

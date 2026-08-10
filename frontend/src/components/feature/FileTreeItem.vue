@@ -54,8 +54,6 @@ const open = ref(true);
     >
       <FileCode2 class="size-3.5 shrink-0" aria-hidden="true" />
       <span class="truncate">{{ node.name }}</span>
-      <!-- An honest lead: this file was touched by the deploy under investigation. It is
-           deliberately NOT a "vulnerable file" marker, which would give the answer away. -->
       <GitCommitHorizontal
         v-if="node.file.recentlyChanged"
         class="ml-auto size-3.5 shrink-0 text-sev-high"

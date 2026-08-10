@@ -16,13 +16,6 @@ export interface TreeFolder {
 
 export type TreeNode = TreeFile | TreeFolder;
 
-/**
- * The API sends a flat list of paths; the explorer needs a tree. Building it here rather
- * than in the component keeps FileTreeItem purely presentational and makes this testable.
- *
- * Folders sort before files, then alphabetically — the ordering every IDE uses, so the
- * tree reads the way a developer expects rather than the way the database returned it.
- */
 export function buildFileTree(files: CodeFile[]): TreeNode[] {
   const root: TreeNode[] = [];
 

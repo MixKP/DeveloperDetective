@@ -1,8 +1,4 @@
 <script setup lang="ts">
-/**
- * A neutral pill. Domain-coloured variants (severity, ethical quality) compose this and
- * pass token classes in, so colour decisions stay in design/theme.ts.
- */
 withDefaults(defineProps<{ tone?: 'neutral' | 'custom' }>(), { tone: 'neutral' });
 </script>
 

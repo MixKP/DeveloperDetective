@@ -3,7 +3,6 @@ import type { ScenarioCatalog } from '../../catalog/index.js';
 import type { InvestigationRepository } from './ports.js';
 import { toInvestigationState } from './toState.js';
 
-/** Dashboard cards, each carrying this learner's state or null if they never opened it. */
 export class GetScenarioList {
   constructor(
     private readonly catalog: ScenarioCatalog,

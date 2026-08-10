@@ -12,8 +12,6 @@ const scenarios = useScenariosStore();
 const progress = useProgressStore();
 
 onMounted(() => {
-  // Settled rather than awaited together: a failing progress call should not blank the
-  // case list, and vice versa.
   void Promise.allSettled([scenarios.fetchList(), progress.fetch()]);
 });
 

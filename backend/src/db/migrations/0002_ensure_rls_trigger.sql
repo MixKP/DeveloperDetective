@@ -1,22 +1,6 @@
--- Migration 0001 enables RLS on the five tables that exist today. This one keeps that
--- property true for tables that do not exist yet.
---
--- An event trigger enables RLS on every new table in `public` as it is created, so a future
--- migration that adds a table cannot quietly ship it world-readable through PostgREST. The
--- reasoning is the same as 0001: the API is the real security boundary, but the anon key
--- reaches the same database, and "we forgot to add it to the RLS migration" is exactly the
--- kind of omission that survives review.
---
--- This already existed on the managed project, added out-of-band and untracked. Bringing it
--- here makes it reproducible: a fresh project now gets it from `npm run db:migrate` rather
--- than from whoever remembers to run it by hand.
-
 CREATE OR REPLACE FUNCTION public.rls_auto_enable()
 RETURNS event_trigger
 LANGUAGE plpgsql
--- SECURITY DEFINER because the trigger must ALTER tables it does not own. `search_path` is
--- pinned to pg_catalog for the same reason: a definer function that resolves unqualified
--- names through the caller's search_path is a privilege escalation waiting to happen.
 SECURITY DEFINER
 SET search_path TO 'pg_catalog'
 AS $function$
@@ -44,18 +28,6 @@ BEGIN
 END;
 $function$;
 --> statement-breakpoint
--- A new function grants EXECUTE to PUBLIC by default, which would publish a SECURITY DEFINER
--- function at /rest/v1/rpc/rls_auto_enable for anyone holding the anon key. Revoking PUBLIC
--- is the part that matters — revoking anon and authenticated alone leaves the inherited
--- PUBLIC grant behind and changes nothing.
---
--- Nothing is lost: PostgreSQL checks EXECUTE when the event trigger is created, not when it
--- fires, so the trigger keeps working with no role able to call the function directly.
---
--- `anon` and `authenticated` are Supabase's roles and do not exist on a stock PostgreSQL,
--- so they are revoked only if present. The integration suite runs against whatever database
--- it is pointed at, and a migration that requires a vendor's roles to exist is a migration
--- that fails somewhere unhelpful.
 REVOKE EXECUTE ON FUNCTION public.rls_auto_enable() FROM PUBLIC;
 --> statement-breakpoint
 DO $$ BEGIN

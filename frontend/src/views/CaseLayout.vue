@@ -7,7 +7,6 @@ import { useScenariosStore } from '@/stores/scenarios';
 
 const scenarios = useScenariosStore();
 
-// The detail is already loaded by the router guard before this layout renders.
 const scenario = computed(() => scenarios.current);
 const quizComplete = computed(() => scenario.value?.state.quizComplete === true);
 </script>

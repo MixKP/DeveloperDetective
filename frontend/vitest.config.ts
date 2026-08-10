@@ -6,7 +6,6 @@ export default defineConfig({
     alias: { '@': fileURLToPath(new URL('./src', import.meta.url)) },
   },
   test: {
-    // No jsdom: the store tests mock the api module outright, so nothing touches the DOM.
     environment: 'node',
     include: ['tests/**/*.test.ts'],
   },

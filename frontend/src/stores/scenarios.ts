@@ -9,18 +9,8 @@ export const useScenariosStore = defineStore('scenarios', () => {
   const loading = ref(false);
   const error = ref<string | null>(null);
 
-  /**
-   * The furthest stage this learner may reach, straight from the server. The router guard
-   * reads it, but it is advisory here — the API refuses gated content regardless of what
-   * the client believes.
-   */
   const stage = computed<Stage>(() => current.value?.state.stage ?? 'brief');
 
-  /**
-   * Runs a fetch with the loading flag and the error message wired up. Only the two loaders
-   * use it: the mutations below surface their failures through the component that called
-   * them, so a wrong answer must not paint the whole screen with an error banner.
-   */
   async function load<T>(fetch: () => Promise<T>): Promise<T> {
     loading.value = true;
     error.value = null;
@@ -34,7 +24,6 @@ export const useScenariosStore = defineStore('scenarios', () => {
     }
   }
 
-  /** The mutations below all act on the loaded scenario, and none of them can create one. */
   function requireCurrent(): ScenarioDetailResponse {
     const scenario = current.value;
     if (!scenario) throw new Error('No scenario loaded');
@@ -61,15 +50,6 @@ export const useScenariosStore = defineStore('scenarios', () => {
       question.explanation = result.explanation;
     }
 
-    // Gated content only ever arrives with the detail payload, so any answer that opens a
-    // gate leaves the cached payload stale:
-    //
-    //  - an unlock means the code viewer is still showing empty highlights
-    //  - finishing the quiz means `debrief` is still null, and the debrief screen would
-    //    render nothing at all — the entire payoff of the case
-    //
-    // The router guard cannot save us here: fetchDetail early-returns for the scenario
-    // already loaded, so navigating to the debrief would reuse this stale payload.
     if (result.justUnlockedVulnerableLines || (result.state.quizComplete && !scenario.debrief)) {
       await fetchDetail(scenario.id, true);
     }

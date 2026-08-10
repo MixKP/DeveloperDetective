@@ -24,7 +24,6 @@ export interface InvestigationUseCases {
   getProgress: GetProgress;
 }
 
-/** Wraps a handler so domain errors become HTTP errors before the platform handler sees them. */
 const handle = (fn: (req: Request, res: Response) => Promise<void>) =>
   asyncHandler(async (req, res) => {
     try {
@@ -34,19 +33,8 @@ const handle = (fn: (req: Request, res: Response) => Promise<void>) =>
     }
   });
 
-/**
- * Controllers stay thin by design: validate, call one use case, send the result. No
- * branching on business state, no orchestration of two use cases, no persistence.
- *
- * These are the learner-facing endpoints for the whole app. They live in `investigation`
- * rather than `catalog` because every one of them is gated by run state.
- */
 export function createInvestigationRouter(useCases: InvestigationUseCases): Router {
   const router = Router();
-
-  // Applied per route rather than via router.use(): a router-level guard would also fire
-  // for paths this router does not handle, turning every unknown /api/* endpoint into a
-  // misleading "missing learner id" instead of a 404.
 
   router.get(
     '/scenarios',
@@ -88,8 +76,6 @@ export function createInvestigationRouter(useCases: InvestigationUseCases): Rout
     '/progress',
     requireLearnerId,
     handle(async (req, res) => {
-      // The schema is .strict() and has no `score` field, so a client-supplied score is
-      // rejected here rather than silently dropped.
       const payload = submitProgressRequestSchema.parse(req.body);
       res.json(await useCases.submitProgress.execute(req.learnerId, payload));
     }),

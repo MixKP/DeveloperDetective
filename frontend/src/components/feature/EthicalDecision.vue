@@ -54,8 +54,6 @@ const outcomeStyle = computed(() => (props.outcome ? qualityStyles[props.outcome
       </label>
     </fieldset>
 
-    <!-- Quality and outcome are not in the payload until a decision is recorded, so there is
-         nothing here for a curious learner to read ahead in devtools. -->
     <div
       v-if="outcome && outcomeStyle"
       class="rounded-[var(--dd-radius-sm)] px-4 py-3 ring-1"

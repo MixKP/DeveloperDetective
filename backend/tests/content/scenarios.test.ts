@@ -4,13 +4,6 @@ import { fileURLToPath } from 'node:url';
 import { describe, expect, it } from 'vitest';
 import { scenarioContentSchema } from '../../src/modules/catalog/infrastructure/seed/contentSchema.js';
 
-/**
- * Validates the authored content without a database.
- *
- * The seed does the same validation, but only when someone runs it against a live Supabase
- * instance. Doing it here means a broken scenario fails in CI, in milliseconds, instead of
- * during a demo.
- */
 const scenariosDir = path.join(
   path.dirname(fileURLToPath(import.meta.url)),
   '../../src/modules/catalog/infrastructure/seed/scenarios',
@@ -49,8 +42,6 @@ describe('authored scenarios', () => {
           const line = lines[lineNumber - 1];
           expect(line, `${file.path}:${lineNumber} is out of range`).toBeDefined();
           expect(line?.trim(), `${file.path}:${lineNumber} is blank`).not.toBe('');
-          // Off-by-one here is the classic authoring error: the highlight lands on the
-          // comment above the defect and the locate question becomes unanswerable.
           expect(
             line?.trim().startsWith('//'),
             `${file.path}:${lineNumber} points at a comment, not code`,
@@ -61,8 +52,6 @@ describe('authored scenarios', () => {
 
     it('marks the file containing the defect as recently changed', () => {
       if (!parsed.success) return;
-      // Not a hard rule of the format, but if the flagged file was not touched by the
-      // deploy, the file tree gives the learner a lead that points somewhere else.
       const flagged = parsed.data.files.filter((f) => f.vulnerableLines.length > 0);
       expect(flagged.length).toBeGreaterThan(0);
     });
@@ -76,7 +65,6 @@ describe('authored scenarios', () => {
 
     it('offers a defensible option among the ethical choices', () => {
       if (!parsed.success) return;
-      // A scenario where every path is bad teaches cynicism rather than judgement.
       expect(parsed.data.ethicalChoices.some((c) => c.quality === 'good')).toBe(true);
     });
   });

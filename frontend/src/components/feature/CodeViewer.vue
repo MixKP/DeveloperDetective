@@ -16,17 +16,9 @@ const props = withDefaults(
 
 setupMonaco();
 
-// shallowRef, not ref: a deep ref would wrap the whole Monaco editor in a reactive Proxy,
-// making Vue walk a large cyclic object graph on assignment and handing Monaco a proxied
-// `this` that can defeat its internal identity checks.
 const editor = shallowRef<Monaco.editor.IStandaloneCodeEditor | null>(null);
 let decorations: Monaco.editor.IEditorDecorationsCollection | null = null;
 
-/**
- * Read-only, no minimap, no suggestions. This is an inspection surface, not an editor —
- * the learner is reviewing someone else's code, and an editable pane would invite them to
- * "fix" it in a textarea instead of reasoning about it.
- */
 const options: Monaco.editor.IStandaloneEditorConstructionOptions = {
   readOnly: true,
   domReadOnly: true,
@@ -55,7 +47,6 @@ function applyHighlights() {
         isWholeLine: true,
         className: 'dd-vulnerable-line',
         marginClassName: 'dd-vulnerable-margin',
-        // Shown on hover, so the highlight explains itself rather than just glowing red.
         hoverMessage: { value: 'Flagged during the investigation.' },
       },
     })),
@@ -67,8 +58,6 @@ function onMount(instance: Monaco.editor.IStandaloneCodeEditor) {
   applyHighlights();
 }
 
-// The highlight arrives after the learner solves the locate question, so re-decorating on
-// change is the whole point rather than an edge case.
 watch(() => [props.highlightLines, props.path], applyHighlights, { deep: true });
 
 onBeforeUnmount(() => {
@@ -88,13 +77,6 @@ onBeforeUnmount(() => {
       </span>
     </header>
 
-    <!--
-      The height must be set HERE, on an element we control, and not as a class on
-      <VueMonacoEditor>. That component writes its `height` prop (default "100%") as an
-      inline style, which beats any utility class. With no definite height in the chain the
-      editor sizes to its own content, `automaticLayout` observes the change and relayouts,
-      the content grows again — and the page stretches further every time you scroll.
-    -->
     <div class="h-[60vh] min-h-80">
       <VueMonacoEditor
         :value="code"
@@ -111,7 +93,6 @@ onBeforeUnmount(() => {
 </template>
 
 <style>
-/* Not scoped: Monaco renders decorations outside the component's style scope. */
 .dd-vulnerable-line {
   background-color: color-mix(in srgb, var(--dd-sev-critical) 18%, transparent);
 }

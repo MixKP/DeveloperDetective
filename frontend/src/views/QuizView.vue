@@ -15,7 +15,6 @@ const scenario = computed(() => scenarios.current);
 const busy = ref(false);
 const message = ref<string | null>(null);
 
-/** Wrong options stay marked so the learner can see what they have already ruled out. */
 const wrongByQuestion = reactive<Record<number, string[]>>({});
 
 const questions = computed(() =>

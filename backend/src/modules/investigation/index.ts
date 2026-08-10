@@ -19,13 +19,6 @@ export interface InvestigationModuleDeps {
   investigations: InvestigationRepository;
 }
 
-/**
- * investigation — public API.
- *
- * The module wires its own use cases. The composition root passes in ports and gets back a
- * router; it never sees a use case or a repository implementation, which is what keeps the
- * "no reaching past index.ts" rule true even for the code doing the wiring.
- */
 export function createInvestigationModule({
   catalog,
   answerKey,

@@ -44,7 +44,6 @@ beforeEach(() => {
   progress = new GetProgress(catalog, repo);
 });
 
-/** Solve the whole quiz cleanly, leaving the score at 100. */
 async function solveEverything() {
   await answer.execute(LEARNER, SCENARIO_ID, LOCATE_Q, 'b');
   await answer.execute(LEARNER, SCENARIO_ID, EXPLAIN_Q, 'a');
@@ -263,8 +262,8 @@ describe('SubmitProgress', () => {
   });
 
   it('derives the score from server counters, since the request cannot carry one', async () => {
-    await hint.execute(LEARNER, SCENARIO_ID, LOCATE_Q); // -10
-    await answer.execute(LEARNER, SCENARIO_ID, LOCATE_Q, 'a'); // -15
+    await hint.execute(LEARNER, SCENARIO_ID, LOCATE_Q);
+    await answer.execute(LEARNER, SCENARIO_ID, LOCATE_Q, 'a');
     await answer.execute(LEARNER, SCENARIO_ID, LOCATE_Q, 'b');
     await answer.execute(LEARNER, SCENARIO_ID, EXPLAIN_Q, 'a');
     await answer.execute(LEARNER, SCENARIO_ID, SOLVE_Q, 'c');
@@ -321,7 +320,7 @@ describe('GetProgress', () => {
   });
 
   it('averages completed cases only', async () => {
-    await hint.execute(LEARNER, SCENARIO_ID, LOCATE_Q); // -10
+    await hint.execute(LEARNER, SCENARIO_ID, LOCATE_Q);
     await solveEverything();
     await submit.execute(LEARNER, {
       scenarioId: SCENARIO_ID,

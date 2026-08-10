@@ -1,15 +1,3 @@
-# Two services, not three.
-#
-# The database is a Supabase PostgreSQL instance and lives outside this compose file, so
-# there is no db container here, no volume to lose, and no healthcheck ordering to get
-# wrong. It is either the managed project or the local stack started by
-# `npx supabase start` — either way, from this file's point of view it is a host the api
-# dials out to, not a service it owns.
-#
-# Migrations are NOT run on container boot. See the README: `npm run db:migrate` is an
-# explicit deploy step, because a crash-looping API that re-runs DDL on every restart is a
-# good way to deadlock a database at the worst possible moment.
-
 services:
   api:
     build:
@@ -19,23 +7,14 @@ services:
     environment:
       NODE_ENV: production
       API_PORT: 3000
-      # env_file hands this container the same DATABASE_URL the host uses, and for the
-      # local Supabase stack that is 127.0.0.1 — which inside a container means the
-      # container itself, not the machine running it. DOCKER_DATABASE_URL overrides it with
-      # a host-reachable address. Unset it (comment it out in .env) and this falls through
-      # to DATABASE_URL unchanged, which is what you want against the managed project.
       DATABASE_URL: ${DOCKER_DATABASE_URL:-${DATABASE_URL}}
     extra_hosts:
-      # Docker Desktop resolves this already; the mapping is what makes it work on Linux.
       - 'host.docker.internal:host-gateway'
     expose:
       - '3000'
     ports:
-      # Exposed on the host for curl and for the contract checks in the README.
       - '${API_PORT:-3000}:3000'
     healthcheck:
-      # Reports 503 when the database is unreachable, so an unhealthy container means
-      # "cannot serve", not merely "process is alive".
       test: ['CMD', 'wget', '--spider', '-q', 'http://localhost:3000/api/health']
       interval: 15s
       timeout: 5s

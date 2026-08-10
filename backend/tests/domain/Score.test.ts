@@ -17,7 +17,6 @@ describe('Score', () => {
   });
 
   it('combines both penalties', () => {
-    // The walkthrough case: one hint taken, one question missed once.
     expect(Score.derive(1, 1).value).toBe(75);
     expect(Score.derive(2, 3).value).toBe(35);
   });
@@ -28,7 +27,6 @@ describe('Score', () => {
   });
 
   it('lands exactly on the floor rather than overshooting it', () => {
-    // 100 - 8*10 = 20, exactly the floor and not a point less.
     expect(Score.derive(8, 0).value).toBe(20);
     expect(Score.derive(9, 0).value).toBe(20);
   });

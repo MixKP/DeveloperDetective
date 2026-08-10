@@ -5,7 +5,6 @@ export type ThemePreference = 'light' | 'dark' | 'system';
 const STORAGE_KEY = 'dd.theme';
 
 const preference = ref<ThemePreference>(read());
-/** Tracks the OS setting so `system` stays live if the user changes it mid-session. */
 const systemPrefersDark = ref(false);
 
 function read(): ThemePreference {
@@ -13,12 +12,6 @@ function read(): ThemePreference {
   return stored === 'light' || stored === 'dark' ? stored : 'system';
 }
 
-/**
- * `system` removes the attribute entirely rather than resolving the OS preference and
- * writing it back. Keeping the attribute off means the `prefers-color-scheme` rules in
- * tokens.css stay live, so the page follows the OS if the user changes it while the tab is
- * open — which a resolved-and-frozen value would not.
- */
 function apply(value: ThemePreference) {
   const root = document.documentElement;
   if (value === 'system') root.removeAttribute('data-theme');
@@ -33,10 +26,6 @@ media.addEventListener('change', (event) => {
 
 apply(preference.value);
 
-/**
- * What the user is actually looking at, as opposed to what they asked for. Components must
- * label themselves from this, not from `preference`.
- */
 const isDark = computed(
   () => preference.value === 'dark' || (preference.value === 'system' && systemPrefersDark.value),
 );

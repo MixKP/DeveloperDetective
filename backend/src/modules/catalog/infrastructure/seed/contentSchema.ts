@@ -1,14 +1,5 @@
 import { z } from 'zod';
 
-/**
- * The authoring contract for a scenario JSON file.
- *
- * Validation runs at seed time, so a malformed scenario fails the import with a
- * path-precise error instead of producing a subtly broken case that only shows up when a
- * learner hits it. The refinements below encode the authoring rules that are easy to get
- * wrong and impossible to notice by eye.
- */
-
 const optionSchema = z.object({
   id: z.string().min(1),
   text: z.string().min(1),
@@ -82,16 +73,10 @@ export const scenarioContentSchema = z
       )
       .min(2),
   })
-  /**
-   * Without a `locate` question there is no way to unlock vulnerable-line highlighting, so
-   * a scenario missing one would leave the code viewer permanently dark. Cheap to check
-   * here, invisible until a learner is halfway through the case otherwise.
-   */
   .refine((s) => s.questions.some((q) => q.kind === 'locate'), {
     message: 'a scenario needs at least one `locate` question to unlock line highlighting',
     path: ['questions'],
   })
-  /** Flagged lines are what the reveal shows; a scenario with none has nothing to reveal. */
   .refine((s) => s.files.some((f) => f.vulnerableLines.length > 0), {
     message: 'at least one file must flag vulnerable lines',
     path: ['files'],

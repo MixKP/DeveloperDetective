@@ -6,13 +6,6 @@ import { NotFoundError } from './errors.js';
 import type { InvestigationRepository } from './ports.js';
 import { toInvestigationState } from './toState.js';
 
-/**
- * Builds the workspace payload for one case.
- *
- * Every gated field is fetched only after the corresponding rule has already said yes. The
- * gating is not "fetch everything then strip" — unrevealed secrets are never loaded at all,
- * so there is no sanitization step to forget.
- */
 export class GetScenarioDetail {
   constructor(
     private readonly catalog: ScenarioCatalog,
@@ -24,8 +17,6 @@ export class GetScenarioDetail {
     const content = await this.catalog.findById(scenarioId);
     if (!content) throw new NotFoundError('Scenario');
 
-    // Opening a case starts the run. This is also what makes `state` non-null here while
-    // the dashboard summary may still show null for cases never opened.
     let run = await this.investigations.find(learnerId, scenarioId);
     if (!run) {
       run = Investigation.start(learnerId, scenarioId);
@@ -34,7 +25,6 @@ export class GetScenarioDetail {
 
     const totalQuestions = content.questions.length;
 
-    // --- gated content ------------------------------------------------------
     const vulnerableLines = run.canRevealVulnerableLines()
       ? await this.answerKey.vulnerableLines(scenarioId)
       : {};

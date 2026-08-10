@@ -13,13 +13,6 @@ const scenarios = useScenariosStore();
 const scenario = computed(() => scenarios.current);
 const activePath = ref('');
 
-// Open on the file the deploy touched: that is the lead the brief hands the learner, and
-// starting on an arbitrary file would just cost them a click.
-//
-// The condition checks the path against THIS scenario's files rather than merely checking
-// that something is selected. Navigating between cases reuses the component instance, and a
-// path carried over from the previous case resolves to no file at all — an empty pane with
-// no error.
 watch(
   scenario,
   (value) => {

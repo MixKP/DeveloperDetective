@@ -7,12 +7,6 @@ import { DrizzleScenarioCatalog } from '../../src/modules/catalog/infrastructure
 import { DrizzleInvestigationRepository } from '../../src/modules/investigation/infrastructure/DrizzleInvestigationRepository.js';
 import { Investigation } from '../../src/modules/investigation/domain/Investigation.js';
 
-/**
- * Integration tests: the repositories against real PostgreSQL.
- *
- * These cover exactly what the in-memory fakes cannot — SQL that is wrong, jsonb that does
- * not round-trip, and upserts that do not actually conflict on what you think they do.
- */
 let handle: DbHandle;
 let catalog: DrizzleScenarioCatalog;
 let answerKey: DrizzleAnswerKey;
@@ -53,8 +47,6 @@ describe('DrizzleScenarioCatalog', () => {
     const summaries = await catalog.listSummaries();
     expect(summaries).toHaveLength(2);
     for (const summary of summaries) {
-      // The count comes from a SQL aggregate, not from the JSON — a broken join would
-      // silently produce 0 here and break every stage calculation downstream.
       expect(summary.questionCount).toBe(3);
     }
   });
@@ -62,8 +54,6 @@ describe('DrizzleScenarioCatalog', () => {
   it('NEVER returns answer-key fields, whatever the shape of the query', async () => {
     const content = await catalog.findById(sqlInjectionId);
 
-    // Exact key names, not substrings: `hintsTotal` legitimately contains "hints", and a
-    // substring check would fail on the very field that exists to avoid sending hint text.
     const keys = collectKeys(content);
     for (const forbidden of [
       'correctOption',
@@ -78,7 +68,6 @@ describe('DrizzleScenarioCatalog', () => {
       expect(keys, `catalog leaked the key "${forbidden}"`).not.toContain(forbidden);
     }
 
-    // And by value, so a leak that renamed the field is still caught.
     const serialized = JSON.stringify(content);
     for (const secret of [
       'Line 42.',
@@ -135,7 +124,6 @@ describe('DrizzleAnswerKey', () => {
   it('maps vulnerable lines by file path', async () => {
     const lines = await answerKey.vulnerableLines(sqlInjectionId);
     expect(lines['src/services/auth.service.ts']).toEqual([23, 24]);
-    // Files with nothing flagged are absent rather than present-and-empty.
     expect(lines['src/db/pool.ts']).toBeUndefined();
   });
 
@@ -173,8 +161,6 @@ describe('DrizzleInvestigationRepository', () => {
     expect(loaded).not.toBeNull();
     expect(loaded!.toSnapshot()).toEqual(run.toSnapshot());
 
-    // The one that bites: jsonb object keys come back as strings. If fromSnapshot did not
-    // convert them, this would read 0 and every hint would become free after a restart.
     expect(loaded!.hintsRevealedFor(q1!.id)).toBe(2);
     expect(loaded!.hintsUsed).toBe(2);
     expect(loaded!.canRevealVulnerableLines()).toBe(true);
@@ -211,8 +197,6 @@ describe('DrizzleInvestigationRepository', () => {
     run.recordAnswer(content!.questions[0]!.id, 'locate', false);
     await investigations.save(run);
 
-    // Raw SQL on purpose: this asserts the column really was written, not merely that the
-    // repository can read back its own in-memory object.
     const [row] = await handle.db.execute<{ score: number }>(
       sql`select score from progress where learner_id = ${learnerId}::uuid`,
     );

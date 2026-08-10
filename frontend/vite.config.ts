@@ -10,8 +10,6 @@ export default defineConfig({
   },
   server: {
     port: 5173,
-    // Dev-only mirror of what nginx does in the container, so the app is same-origin in
-    // both environments and CORS never enters the picture.
     proxy: {
       '/api': { target: 'http://localhost:3000', changeOrigin: true },
     },
@@ -19,8 +17,6 @@ export default defineConfig({
   build: {
     rollupOptions: {
       output: {
-        // Monaco is ~2MB and belongs to one route. Splitting it keeps the dashboard's
-        // first paint off the critical path of the code viewer.
         manualChunks: (id) => (id.includes('monaco-editor') ? 'monaco' : undefined),
       },
     },

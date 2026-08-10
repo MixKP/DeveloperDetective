@@ -4,7 +4,6 @@ import { createDb } from '../../../../platform/db/client.js';
 import { loadEnv } from '../../../../platform/env.js';
 import { importScenarios } from './import.js';
 
-/** CLI entry point: `npm run db:seed`. Safe to re-run — the import upserts by natural key. */
 const env = loadEnv();
 const { db, close } = createDb(env.DIRECT_DATABASE_URL ?? env.DATABASE_URL);
 

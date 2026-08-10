@@ -5,18 +5,6 @@ import type { Database } from '../../../../platform/db/client.js';
 import { ethicalChoices, files, questions, scenarios } from '../schema.js';
 import { scenarioContentSchema, type ScenarioContentInput } from './contentSchema.js';
 
-/**
- * Imports authored scenario JSON into the database.
- *
- * IDEMPOTENT BY NATURAL KEY, not by delete-and-reinsert. Every row is upserted on a key
- * derived from the content — slug for scenarios, path for files, orderIndex for questions
- * and choices — so ids stay stable across reseeds.
- *
- * That matters more than it looks: learner progress stores solved question ids in jsonb
- * with no foreign key. Wiping and reinserting would hand out fresh ids and silently
- * invalidate every learner's progress, which is the kind of bug that only shows up during
- * a demo.
- */
 export async function importScenarios(db: Database, directory: string): Promise<string[]> {
   const entries = (await readdir(directory)).filter((name) => name.endsWith('.json')).sort();
   const imported: string[] = [];
@@ -118,17 +106,9 @@ async function importOne(db: Database, content: ScenarioContentInput): Promise<v
       });
   }
 
-  // Content shrank since the last import: drop the rows that no longer have an author.
   await pruneExtras(db, scenarioId, content);
 }
 
-/**
- * Deletes rows the author removed. Each table is pruned by the same natural key it was
- * upserted on: files by path, questions and choices by position, since the upserts above
- * renumber `orderIndex` to match the array order every time.
- *
- * The content schema requires at least one file, so the path list is never empty.
- */
 async function pruneExtras(
   db: Database,
   scenarioId: number,

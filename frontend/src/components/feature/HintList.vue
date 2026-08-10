@@ -38,8 +38,6 @@ const remaining = computed(() => props.total - props.revealed.length);
       @click="emit('reveal')"
     >
       <Lightbulb class="size-4" aria-hidden="true" />
-      <!-- The cost is stated before the click, not after. The penalty comes from the API
-           so this never drifts from the actual scoring rule. -->
       Reveal a hint (−{{ penalty }} points, {{ remaining }} left)
     </BaseButton>
 

@@ -1,10 +1,5 @@
 import type { EthicalQuality, Severity, Stage } from '@dd/shared';
 
-/**
- * Domain value → styling. Components read from these maps instead of branching on domain
- * values inline, which keeps them declarative and keeps colour decisions in one file.
- */
-
 export const severityStyles: Record<Severity, { text: string; bg: string; ring: string }> = {
   Critical: {
     text: 'text-sev-critical',
@@ -41,7 +36,6 @@ export const qualityStyles: Record<EthicalQuality, { text: string; bg: string; r
   },
 };
 
-/** Human labels for the consequence panel. Deliberately not judgemental in tone. */
 export const qualityLabels: Record<EthicalQuality, string> = {
   good: 'Defensible call',
   neutral: 'Mixed outcome',
@@ -57,17 +51,6 @@ export const stageLabels: Record<Stage, string> = {
   debrief: 'Debrief',
 };
 
-/**
- * Which stages the learner may navigate to.
- *
- * Only the debrief is gated, and only on whether the quiz is finished. An earlier version
- * compared against the run's reported `stage`, which deadlocked the flow: a learner who had
- * read the code but not yet answered anything reported stage `investigate`, so the guard
- * refused them the quiz — the one place they could go to make progress.
- *
- * This matches ADR 0005: the brief, the repository and the questions are all freely
- * revisitable; the debrief is the answer, so it waits until the work is done.
- */
 export function stageReachable(target: Stage, quizComplete: boolean): boolean {
   return target !== 'debrief' || quizComplete;
 }

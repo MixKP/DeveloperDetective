@@ -8,20 +8,6 @@ import type {
 } from '../domain/readModels.js';
 import { ethicalChoices, files, questions, scenarios } from './schema.js';
 
-/**
- * Public scenario content.
- *
- * Every query here selects columns EXPLICITLY. `select()` with no argument would pull
- * `correct_option`, `explanation` and `hints` along with everything else, and from there a
- * single careless spread into a response is all it takes to publish the answer key. The
- * secrets are reachable only through DrizzleAnswerKey, which is the sibling of this class
- * and the only file allowed to name those columns.
- */
-/**
- * The public shape of a question, in one place so there is a single list to audit. Note what
- * is missing: `correctOption`, `explanation` and the hint *text*. Only the hint count leaves
- * this file — the text comes one purchase at a time from AnswerKey.
- */
 const publicQuestionColumns = {
   id: questions.id,
   scenarioId: questions.scenarioId,
@@ -65,10 +51,6 @@ export class DrizzleScenarioCatalog implements ScenarioCatalog {
   }
 
   async findById(scenarioId: number): Promise<ScenarioContent | null> {
-    // Explicit columns, and note which ones are absent: root_cause, business_impact and
-    // remediation. Those are the debrief — gated content that GetScenarioDetail fetches
-    // through AnswerKey.debrief() only once the quiz is complete. A bare select() here
-    // would quietly load them into the same object the public payload is built from.
     const [scenario] = await this.db
       .select({
         id: scenarios.id,

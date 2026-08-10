@@ -1,13 +1,6 @@
 import { Router } from 'express';
 import { asyncHandler } from '../http/asyncHandler.js';
 
-/**
- * No use case, no port, no entity — deliberately.
- *
- * Health is a liveness probe for the container, not a business capability. Wrapping a
- * connection ping in three layers of Clean Architecture would be ceremony with nothing to
- * protect. This is the documented exception, not an oversight.
- */
 export function createHealthRouter(pingDb: () => Promise<boolean>): Router {
   const router = Router();
 

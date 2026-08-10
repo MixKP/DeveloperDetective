@@ -1,4 +1,3 @@
-# Build context is the repository root so the @dd/shared workspace resolves.
 FROM node:22-alpine AS build
 WORKDIR /app
 
@@ -11,11 +10,9 @@ RUN npm ci
 COPY shared shared
 COPY frontend frontend
 
-# The SPA calls /api on its own origin; nginx proxies it to the api service.
 ENV VITE_API_BASE_URL=/api
 RUN npm run build -w @dd/shared && npm run build -w @dd/frontend
 
-# ---------------------------------------------------------------------------
 FROM nginx:1.27-alpine AS runtime
 
 COPY frontend/nginx.conf /etc/nginx/conf.d/default.conf

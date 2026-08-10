@@ -19,11 +19,6 @@ const changedCount = computed(() => props.files.filter((f) => f.recentlyChanged)
       <span class="text-xs font-medium tracking-wide text-code-text uppercase">Repository</span>
     </header>
 
-    <!--
-      min-h-0: a flex child defaults to min-height:auto, so overflow-y-auto would grow the
-      column instead of scrolling inside it. overscroll-contain stops a scroll that reaches
-      the end of the tree from chaining to the page.
-    -->
     <ul class="min-h-0 flex-1 overflow-y-auto overscroll-contain py-2">
       <FileTreeItem
         v-for="node in tree"

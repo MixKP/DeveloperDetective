@@ -10,16 +10,6 @@ export interface DbHandle {
   close: () => Promise<void>;
 }
 
-/**
- * Connects to Supabase PostgreSQL.
- *
- * `prepare: false` is not optional and not a style choice. Supabase's transaction pooler is
- * PgBouncer in transaction mode, which hands a different backend connection to each
- * statement — prepared statements do not survive that. With prepare left on, the app works
- * locally against a direct connection and then fails in the container with an opaque
- * "prepared statement does not exist" error. This is the single most common way this stack
- * breaks, so it is pinned here rather than in configuration.
- */
 export function createDb(connectionString: string): DbHandle {
   const client = postgres(connectionString, {
     prepare: false,

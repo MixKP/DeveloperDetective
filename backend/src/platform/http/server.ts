@@ -4,10 +4,6 @@ import { errorHandler, notFoundHandler } from './errors.js';
 
 export interface ServerOptions {
   routers: { path: string; router: Router }[];
-  /**
-   * Dev-only. In the container nginx serves the SPA and proxies /api, so everything is
-   * same-origin and CORS never applies.
-   */
   corsOrigins?: string[];
 }
 

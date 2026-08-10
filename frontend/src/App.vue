@@ -32,7 +32,6 @@ import ThemeToggle from '@/components/ui/ThemeToggle.vue';
 </template>
 
 <style scoped>
-/* Motion stays subtle: a short cross-fade between stages, nothing more. */
 .stage-enter-active,
 .stage-leave-active {
   transition:

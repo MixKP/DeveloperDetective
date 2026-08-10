@@ -5,13 +5,6 @@ import { NotFoundError } from './errors.js';
 import type { InvestigationRepository } from './ports.js';
 import { toInvestigationState } from './toState.js';
 
-/**
- * Grades one answer.
- *
- * Note what this use case never sees: the correct option. It asks catalog for a verdict and
- * acts on the boolean. There is no branch here that could accidentally serialize an answer
- * key, because there is no answer key in scope.
- */
 export class AnswerQuestion {
   constructor(
     private readonly catalog: ScenarioCatalog,
@@ -26,7 +19,6 @@ export class AnswerQuestion {
     optionId: string,
   ): Promise<AnswerResponse> {
     const question = await this.catalog.findQuestion(questionId);
-    // The scenario check stops a learner grading a question from a case they are not in.
     if (!question || question.scenarioId !== scenarioId) throw new NotFoundError('Question');
 
     const verdict = await this.answerKey.checkAnswer(questionId, optionId);
@@ -38,8 +30,6 @@ export class AnswerQuestion {
 
     const unlockedBefore = run.canRevealVulnerableLines();
 
-    // Throws RuleViolation if the question is already solved, which is what stops a learner
-    // from re-answering to farm the explanation or to pad their attempt count.
     run.recordAnswer(questionId, verdict.kind, verdict.correct);
     await this.investigations.save(run);
 
@@ -47,8 +37,6 @@ export class AnswerQuestion {
 
     return {
       correct: verdict.correct,
-      // Gated a second time on this side of the boundary. Catalog already withholds the
-      // explanation on a miss; belt and braces, because a leak here is unrecoverable.
       explanation: verdict.correct ? verdict.explanation : null,
       justUnlockedVulnerableLines: !unlockedBefore && run.canRevealVulnerableLines(),
       state: toInvestigationState(run, totalQuestions),

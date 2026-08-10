@@ -131,15 +131,6 @@ describe('fetchDetail caching', () => {
 });
 
 describe('gated content invalidates the cached payload', () => {
-  /**
-   * Regression test.
-   *
-   * The debrief is null in the payload until the quiz is complete, and the router guard
-   * calls fetchDetail() without forcing — which early-returns for a scenario already
-   * loaded. So without an explicit refetch when the quiz completes, the learner reaches the
-   * debrief screen holding a payload whose `debrief` is still null and sees nothing at all:
-   * the root cause, business impact and remediation, which are the entire point of the case.
-   */
   it('refetches when the final answer completes the quiz', async () => {
     getScenario.mockResolvedValueOnce(detail()).mockResolvedValueOnce(
       detail({

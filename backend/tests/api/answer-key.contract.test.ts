@@ -12,25 +12,12 @@ import {
   StubCatalog,
 } from '../support/fakes.js';
 
-/**
- * THE NON-NEGOTIABLE TEST.
- *
- * The product's core security property is that the browser never receives the answer key.
- * Everything else — the AnswerKey port, the gating in the use cases — exists to make that
- * true by construction. This test is the tripwire that proves it stayed true, and it is
- * cheap enough that there is no excuse for not having it.
- *
- * It works by value as well as by key name, because a leak that renamed the field would
- * still be a leak.
- */
-
 const FORBIDDEN_KEYS = ['correctOption', 'correct_option', 'answerKey', 'hints'];
 
-/** Secrets that must never appear anywhere in a payload, whatever the field is called. */
 const FORBIDDEN_VALUES = [
-  'Parameterized queries keep data out of the SQL grammar entirely.', // solve explanation
-  'Line 42.', // an unpurchased hint
-  'Check auth.service.ts.', // an unpurchased hint
+  'Parameterized queries keep data out of the SQL grammar entirely.',
+  'Line 42.',
+  'Check auth.service.ts.',
 ];
 
 function collectKeys(value: unknown, found: string[] = []): string[] {
@@ -86,7 +73,6 @@ describe('the answer key never reaches the client', () => {
     for (const forbidden of FORBIDDEN_KEYS) {
       expect(keys).not.toContain(forbidden);
     }
-    // The purchased hint is allowed through; the ones not paid for are not.
     expect(JSON.stringify(res.body)).toContain('Look at how the query is built.');
     expect(JSON.stringify(res.body)).not.toContain('Check auth.service.ts.');
   });
