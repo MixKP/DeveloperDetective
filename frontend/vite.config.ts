@@ -15,8 +15,6 @@ export default defineConfig({
     },
   },
   build: {
-    outDir: fileURLToPath(new URL('../dist', import.meta.url)),
-    emptyOutDir: true,
     rollupOptions: {
       output: {
         manualChunks: (id) => (id.includes('monaco-editor') ? 'monaco' : undefined),
