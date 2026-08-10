@@ -1,0 +1,65 @@
+name: CI
+
+on:
+  push:
+    branches: [main, dev]
+  pull_request:
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - run: npm ci
+
+      # @dd/shared compiles to dist/, which both other workspaces resolve against.
+      - name: Build shared contract
+        run: npm run build -w @dd/shared
+
+      - name: Lint (includes architecture boundary rules)
+        run: npm run lint
+
+      - name: Typecheck
+        run: npm run typecheck
+
+      # No database, no network. That is the point of keeping the domain framework-free:
+      # every business rule, the whole HTTP surface, and the answer-key contract test all
+      # run here with nothing provisioned.
+      - name: Test
+        run: npm test
+
+      - name: Check formatting
+        run: npm run format:check
+
+  images:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      # Both images build from the repository root so the @dd/shared workspace resolves.
+      - name: Build API image
+        run: docker build -f backend/Dockerfile -t dd-api:ci .
+
+      - name: Build web image
+        run: docker build -f frontend/Dockerfile -t dd-web:ci .
+
+      - name: Smoke test the API container
+        run: |
+          docker run -d --name dd-api-ci -p 3000:3000 \
+            -e DATABASE_URL="postgresql://nobody:nothing@127.0.0.1:5432/nope" \
+            -e NODE_ENV=production dd-api:ci
+          sleep 8
+          # A bad DSN must produce 503 + db:unreachable, not a crash. This proves the image
+          # boots, serves, and reports its own health honestly.
+          status=$(curl -s -o /tmp/health.json -w '%{http_code}' http://localhost:3000/api/health)
+          cat /tmp/health.json
+          test "$status" = "503"
+          grep -q '"db":"unreachable"' /tmp/health.json
+          curl -s http://localhost:3000/api/nope | grep -q 'NOT_FOUND'
+          docker rm -f dd-api-ci

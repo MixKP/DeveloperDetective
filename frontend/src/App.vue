@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { RouterLink, RouterView } from 'vue-router';
 import { Fingerprint } from 'lucide-vue-next';
+import ThemeToggle from '@/components/ui/ThemeToggle.vue';
 </script>
 
 <template>
@@ -11,9 +12,12 @@ import { Fingerprint } from 'lucide-vue-next';
           <Fingerprint class="size-5 text-primary" aria-hidden="true" />
           Developer Detective
         </RouterLink>
-        <p class="hidden text-xs text-muted sm:block">
-          You are the engineer on call — not the attacker.
-        </p>
+        <div class="flex items-center gap-3">
+          <p class="hidden text-xs text-muted sm:block">
+            You are the engineer on call — not the attacker.
+          </p>
+          <ThemeToggle />
+        </div>
       </div>
     </header>
 
