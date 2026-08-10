@@ -5,7 +5,8 @@ import { migrate } from 'drizzle-orm/postgres-js/migrator';
 import postgres from 'postgres';
 import { importScenarios } from '../../src/modules/catalog/infrastructure/seed/import.js';
 
-const ADMIN_URL = process.env.TEST_ADMIN_URL ?? 'postgresql://postgres:dev@localhost:5432/postgres';
+const ADMIN_URL =
+  process.env.TEST_ADMIN_URL ?? 'postgresql://postgres:postgres@localhost:54322/postgres';
 const TEST_DB = 'dd_test';
 
 export const testDatabaseUrl = ADMIN_URL.replace(/\/[^/]*$/, `/${TEST_DB}`);
@@ -20,8 +21,8 @@ export async function setup() {
     await admin.unsafe(`create database ${TEST_DB}`);
   } catch (error) {
     throw new Error(
-      `Could not prepare the ${TEST_DB} database. Is PostgreSQL running?\n` +
-        `  docker run -d --name dd-pg -p 5432:5432 -e POSTGRES_PASSWORD=dev postgres:16\n` +
+      `Could not prepare the ${TEST_DB} database. Is the local Supabase stack running?\n` +
+        `  npx supabase start\n` +
         String(error),
     );
   } finally {

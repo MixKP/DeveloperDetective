@@ -15,14 +15,10 @@
     "allowImportingTsExtensions": true,
     "resolveJsonModule": true,
     "types": ["vite/client"],
-    // No `baseUrl`: it is deprecated in TypeScript 7, and these paths already resolve
-    // relative to this file. Vite has its own alias in vite.config.ts.
     "paths": {
       "@/*": ["./src/*"]
     }
   },
-  // tests/ and the config files are included so the editor and `npm run typecheck` see the
-  // same set of files. Leaving them out means a broken test only surfaces when it is run.
   "include": ["src/**/*.ts", "src/**/*.vue", "tests/**/*.ts", "vite.config.ts", "vitest.config.ts"],
   "exclude": ["dist", "node_modules"]
 }

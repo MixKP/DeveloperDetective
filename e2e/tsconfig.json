@@ -12,7 +12,5 @@
     "noEmit": true,
     "types": ["node"]
   },
-  // playwright.config.ts belongs to the root tsconfig, not this one: a file claimed by two
-  // projects leaves the editor to pick, and it does not always pick the same one you did.
   "include": ["**/*.ts"]
 }

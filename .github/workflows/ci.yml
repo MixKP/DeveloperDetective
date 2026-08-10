@@ -18,7 +18,6 @@ jobs:
 
       - run: npm ci
 
-      # @dd/shared compiles to dist/, which both other workspaces resolve against.
       - name: Build shared contract
         run: npm run build -w @dd/shared
 
@@ -28,17 +27,12 @@ jobs:
       - name: Typecheck
         run: npm run typecheck
 
-      # No database, no network. That is the point of keeping the domain framework-free:
-      # every business rule, the whole HTTP surface, and the answer-key contract test all
-      # run here with nothing provisioned.
       - name: Test
         run: npm test
 
       - name: Check formatting
         run: npm run format:check
 
-  # Integration and e2e need a real database, so they are separate jobs. Keeping them out
-  # of `verify` is deliberate: that job must stay runnable with nothing provisioned.
   integration:
     runs-on: ubuntu-latest
     services:
@@ -56,7 +50,6 @@ jobs:
       - run: npm ci
       - run: npm run build -w @dd/shared
 
-      # globalSetup creates, migrates and seeds a dedicated dd_test database.
       - name: Integration tests (Drizzle against real PostgreSQL)
         run: npm run test:integration
         env:
@@ -73,7 +66,6 @@ jobs:
         options: >-
           --health-cmd pg_isready --health-interval 5s --health-timeout 5s --health-retries 10
     env:
-      # No pooler locally, so both urls are the same. Against Supabase they differ.
       DATABASE_URL: postgresql://postgres:dev@localhost:5432/postgres
       DIRECT_DATABASE_URL: postgresql://postgres:dev@localhost:5432/postgres
       NODE_ENV: development
@@ -90,8 +82,6 @@ jobs:
       - name: Prepare the database
         run: npm run db:migrate && npm run db:seed
 
-      # CI=true turns off reuseExistingServer, so Playwright starts the API and the SPA
-      # itself and tears them down afterwards.
       - name: End-to-end tests
         run: npm run test:e2e
 
@@ -104,15 +94,31 @@ jobs:
 
   images:
     runs-on: ubuntu-latest
+    needs: verify
     steps:
       - uses: actions/checkout@v4
 
-      # Both images build from the repository root so the @dd/shared workspace resolves.
+      - uses: docker/setup-buildx-action@v3
+
       - name: Build API image
-        run: docker build -f backend/Dockerfile -t dd-api:ci .
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: backend/Dockerfile
+          tags: dd-api:ci
+          load: true
+          cache-from: type=gha,scope=api
+          cache-to: type=gha,mode=max,scope=api
 
       - name: Build web image
-        run: docker build -f frontend/Dockerfile -t dd-web:ci .
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: frontend/Dockerfile
+          tags: dd-web:ci
+          load: true
+          cache-from: type=gha,scope=web
+          cache-to: type=gha,mode=max,scope=web
 
       - name: Smoke test the API container
         run: |
@@ -120,8 +126,6 @@ jobs:
             -e DATABASE_URL="postgresql://nobody:nothing@127.0.0.1:5432/nope" \
             -e NODE_ENV=production dd-api:ci
           sleep 8
-          # A bad DSN must produce 503 + db:unreachable, not a crash. This proves the image
-          # boots, serves, and reports its own health honestly.
           status=$(curl -s -o /tmp/health.json -w '%{http_code}' http://localhost:3000/api/health)
           cat /tmp/health.json
           test "$status" = "503"

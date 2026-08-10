@@ -238,25 +238,20 @@ keeping the domain framework-free.
 | **Integration**             | a real PostgreSQL | Wrong SQL, jsonb that does not round-trip, upserts that conflict on the wrong key |
 | **End-to-end**              | a real browser    | The seams: router guards, store caching, Monaco layout                            |
 
-Integration and e2e need a database, and they do not use the same one as the app:
+Integration and e2e need a database — the local stack, same as everything else:
 
 ```bash
-npx supabase start                        # for the app, on :54322
-docker run -d --name dd-pg -p 5432:5432 \
-  -e POSTGRES_PASSWORD=dev postgres:16    # for the integration suite, on :5432
+npx supabase start
 npm run db:migrate && npm run db:seed
 npm run test:integration    # creates and drops its own dd_test database
 npm run test:e2e            # starts the API and the SPA itself
 ```
 
-The integration suite drops and recreates `dd_test` on every run, so it deliberately does not
-share a server with anything you care about. It reads `TEST_ADMIN_URL` and falls back to
-`postgresql://postgres:dev@localhost:5432/postgres` — point that at the local Supabase stack
-instead if you would rather not run a second container.
+The integration suite never touches the database the app uses. It creates `dd_test` on the
+same server, drops it on every run, and reads `TEST_ADMIN_URL` if you need to point it
+somewhere else — it defaults to the local stack on `:54322`.
 
-Running against stock PostgreSQL rather than Supabase is also what keeps the migrations
-honest: `0002` revokes from `anon` and `authenticated` only where those roles exist, and this
-suite is what fails if that guard is ever dropped.
+Do not point it at the managed project. It drops databases.
 
 Each level earns its place. The e2e suite found a progression deadlock that every layer
 below it reported as healthy: the router guard treated the run's reported stage as a
