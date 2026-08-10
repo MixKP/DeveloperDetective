@@ -1,0 +1,167 @@
+{
+  "slug": "sql-injection-auth-bypass",
+  "title": "Authentication bypass in the login service",
+  "summary": "Support has three customers whose accounts were accessed without their password.",
+  "severity": "Critical",
+  "tags": [
+    "sql-injection",
+    "authentication",
+    "owasp-a03"
+  ],
+  "estimatedMinutes": 25,
+  "language": "typescript",
+  "brief": {
+    "sender": "Priya Raman",
+    "senderRole": "Head of Customer Support",
+    "subject": "URGENT: three accounts accessed without the right password",
+    "receivedAt": "2026-08-10T08:14:00.000Z",
+    "body": "Morning,\\n\\nOvernight we had three separate customers call in saying someone else had been in their account. Two of them had order history they did not recognise. All three swear they never shared their password, and none of them reused one from another site.\\n\\nOur access logs show successful logins for all three, from an IP range in a country none of them have visited. The logins succeeded on the first attempt, so this does not look like anyone guessing passwords.\\n\\nEngineering shipped something to the login path last week during the checkout incident. I do not know if that is related, but the timing is uncomfortable.\\n\\nPlease look at this today. I have customers waiting on an answer.\\n\\nPriya",
+    "objectives": [
+      "Find the defect that allows a login without the correct password",
+      "Explain how an attacker reaches it and what it exposes",
+      "Choose the fix that closes the class of bug, not just this instance"
+    ]
+  },
+  "debrief": {
+    "rootCause": "authenticate() builds its SQL by interpolating the email and password directly into a template literal. The values are parsed as SQL, not treated as data, so an input containing a quote can close the string literal and append attacker-controlled logic to the WHERE clause. The rewrite that introduced this replaced a parameterised ORM call to save roughly 40ms per login.",
+    "businessImpact": "Any account can be accessed without knowing its password, including staff accounts with the support and admin roles. Because the same query returns the role, an attacker can pivot from a customer login straight to an admin session. Under GDPR this is a reportable personal data breach with a 72-hour notification window, and the login logs show success rather than failure, so nothing in monitoring flagged it.",
+    "remediation": "Replace the interpolated query with a parameterised one, passing email and password as bound values so the database never parses them as SQL. Then rotate all active sessions, force a password reset for affected accounts, and audit the logs for other successful logins from the same IP range. Add a lint rule banning template literals in query() calls so the next rewrite cannot reintroduce it."
+  },
+  "files": [
+    {
+      "path": "src/services/auth.service.ts",
+      "language": "typescript",
+      "code": "import { pool } from '../db/pool';\nimport { logger } from '../utils/logger';\nimport type { User } from '../models/user';\n\ninterface Credentials {\n  email: string;\n  password: string;\n}\n\n/**\n * Looks up a user by email and verifies the supplied password.\n *\n * TODO(perf): the ORM was adding ~40ms per login under peak load, so this was\n * rewritten against the raw pool during the checkout incident. Revisit later.\n * -- RT, 3 Aug\n */\nexport async function authenticate(credentials: Credentials): Promise<User | null> {\n  const { email, password } = credentials;\n\n  const result = await pool.query(\n    `SELECT id, email, password_hash, role\n       FROM users\n      WHERE email = '${email}'\n        AND password_hash = crypt('${password}', password_hash)\n      LIMIT 1`,\n  );\n\n  if (result.rows.length === 0) {\n    logger.warn('login.failed', { email });\n    return null;\n  }\n\n  logger.info('login.ok', { email, userId: result.rows[0].id });\n  return result.rows[0] as User;\n}\n",
+      "vulnerableLines": [
+        23,
+        24
+      ],
+      "recentlyChanged": true
+    },
+    {
+      "path": "src/routes/auth.routes.ts",
+      "language": "typescript",
+      "code": "import { Router } from 'express';\nimport { authenticate } from '../services/auth.service';\nimport { issueSession } from '../services/session.service';\n\nexport const authRouter = Router();\n\nauthRouter.post('/login', async (req, res) => {\n  const { email, password } = req.body ?? {};\n\n  if (typeof email !== 'string' || typeof password !== 'string') {\n    return res.status(400).json({ error: 'email and password are required' });\n  }\n\n  const user = await authenticate({ email, password });\n\n  if (!user) {\n    return res.status(401).json({ error: 'Invalid credentials' });\n  }\n\n  const token = await issueSession(user);\n  return res.json({ token, role: user.role });\n});\n",
+      "vulnerableLines": [],
+      "recentlyChanged": true
+    },
+    {
+      "path": "src/db/pool.ts",
+      "language": "typescript",
+      "code": "import { Pool } from 'pg';\nimport { config } from '../config';\n\nexport const pool = new Pool({\n  connectionString: config.databaseUrl,\n  max: 20,\n  idleTimeoutMillis: 30_000,\n});\n\npool.on('error', (error) => {\n  console.error('Unexpected pool error', error);\n});\n",
+      "vulnerableLines": [],
+      "recentlyChanged": false
+    },
+    {
+      "path": "src/models/user.ts",
+      "language": "typescript",
+      "code": "export interface User {\n  id: string;\n  email: string;\n  password_hash: string;\n  role: 'customer' | 'support' | 'admin';\n}\n",
+      "vulnerableLines": [],
+      "recentlyChanged": false
+    }
+  ],
+  "questions": [
+    {
+      "kind": "locate",
+      "prompt": "Which lines introduce the vulnerability?",
+      "options": [
+        {
+          "id": "a",
+          "text": "auth.routes.ts lines 10-12 — the type check on the request body"
+        },
+        {
+          "id": "b",
+          "text": "auth.service.ts lines 23-24 — email and password interpolated into the SQL string"
+        },
+        {
+          "id": "c",
+          "text": "pool.ts lines 4-8 — the connection pool is configured with too many connections"
+        },
+        {
+          "id": "d",
+          "text": "auth.service.ts line 34 — the user row is returned without stripping password_hash"
+        }
+      ],
+      "correctOption": "b",
+      "explanation": "Lines 23 and 24 splice the raw email and password into the query text. The database receives one finished string and has no way to tell which parts came from the user. Line 34 leaking password_hash is a real second-order problem worth raising separately, but it is not what allows the bypass.",
+      "hints": [
+        "Start with the file the deploy touched, and look at how the query is assembled.",
+        "The query is a template literal. Ask what happens to a value containing a quote.",
+        "Look at the two lines inside the WHERE clause that contain ${...}."
+      ]
+    },
+    {
+      "kind": "explain",
+      "prompt": "An attacker submits the email  ' OR role = 'admin' --  Why does the login succeed?",
+      "options": [
+        {
+          "id": "a",
+          "text": "The leading quote closes the email literal, OR makes the predicate true for another row, and -- comments out the password check"
+        },
+        {
+          "id": "b",
+          "text": "The database times out and pg returns a cached row from the previous query"
+        },
+        {
+          "id": "c",
+          "text": "crypt() returns null for malformed input, and null is falsy, so the check is skipped"
+        },
+        {
+          "id": "d",
+          "text": "Express parses the quote as JSON, turning the body into an object that bypasses the type guard"
+        }
+      ],
+      "correctOption": "a",
+      "explanation": "The input is concatenated into the SQL text, so its quote terminates the string literal the author intended and everything after it is parsed as SQL. The `--` turns the rest of the statement, including the password comparison, into a comment. The query becomes a valid statement that selects a row the attacker chose.",
+      "hints": [
+        "Write out the final string the database actually receives, with the input substituted in.",
+        "What does -- mean to a SQL parser, and what happens to everything after it?"
+      ]
+    },
+    {
+      "kind": "solve",
+      "prompt": "Which fix closes this class of defect rather than this one instance?",
+      "options": [
+        {
+          "id": "a",
+          "text": "Strip single quotes from email and password before building the query"
+        },
+        {
+          "id": "b",
+          "text": "Reject any input matching a blocklist of SQL keywords such as OR, UNION and --"
+        },
+        {
+          "id": "c",
+          "text": "Use a parameterised query, passing email and password as bound values"
+        },
+        {
+          "id": "d",
+          "text": "Escape the inputs with encodeURIComponent() before interpolating them"
+        }
+      ],
+      "correctOption": "c",
+      "explanation": "Parameterised queries send the SQL text and the values to the database separately, so user input is never parsed as SQL and there is no escaping to get right. Stripping quotes and blocklisting keywords are both denylists: they fail the moment someone finds an encoding you did not think of, and they break legitimate input like O'Brien. encodeURIComponent is for URLs and does nothing to SQL syntax.",
+      "hints": [
+        "Two of these options try to identify bad input. What is the allowlist equivalent?",
+        "Which option means the database never has to parse user input as SQL at all?"
+      ]
+    }
+  ],
+  "ethicalChoices": [
+    {
+      "text": "Fix it properly now, tell the security lead immediately, and hold the release until affected sessions are rotated — even though it slips the Friday launch.",
+      "quality": "good",
+      "outcome": "The release slipped by two days and your product manager was visibly annoyed in standup. The rotation logs showed four more compromised accounts nobody had reported yet. Legal filed the breach notification inside the 72-hour window because you flagged it on day one. Six weeks later the incident review named the escalation as the reason the damage stayed contained."
+    },
+    {
+      "text": "Ship the release on schedule, quietly patch the query in the same commit as an unrelated bugfix, and mention it at Monday's standup.",
+      "quality": "bad",
+      "outcome": "The patch worked, but nobody rotated the stolen sessions, so the attacker stayed logged in through the weekend and exported the support account's customer list. Because the fix was buried in an unrelated commit, the timeline could not be reconstructed and the notification went out on day nine. The regulator's finding focused less on the bug than on the seven days of silence."
+    },
+    {
+      "text": "Log a ticket with the details, mark it critical, and let the security team pick it up in their next triage.",
+      "quality": "neutral",
+      "outcome": "The ticket was triaged on Tuesday and fixed correctly. Nothing further was exploited, which was partly luck: the attacker had already moved on. Your tech lead's only comment was that a live authentication bypass is a phone call, not a ticket — the process you used was the right one for a bug, and this had stopped being just a bug."
+    }
+  ]
+}

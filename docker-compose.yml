@@ -1,0 +1,51 @@
+# Two services, not three.
+#
+# The database is a managed Supabase PostgreSQL instance and lives outside Docker, so there
+# is no db container, no volume to lose, and no healthcheck ordering to get wrong. It also
+# means every developer on the team is looking at the same data instead of five slightly
+# divergent local databases.
+#
+# Migrations are NOT run on container boot. See the README: `npm run db:migrate` is an
+# explicit deploy step, because a crash-looping API that re-runs DDL on every restart is a
+# good way to deadlock a database at the worst possible moment.
+
+services:
+  api:
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
+    env_file: .env
+    environment:
+      NODE_ENV: production
+      API_PORT: 3000
+    expose:
+      - '3000'
+    ports:
+      # Exposed on the host for curl and for the contract checks in the README.
+      - '${API_PORT:-3000}:3000'
+    healthcheck:
+      # Reports 503 when the database is unreachable, so an unhealthy container means
+      # "cannot serve", not merely "process is alive".
+      test: ['CMD', 'wget', '--spider', '-q', 'http://localhost:3000/api/health']
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
+    restart: unless-stopped
+
+  web:
+    build:
+      context: .
+      dockerfile: frontend/Dockerfile
+    ports:
+      - '${WEB_PORT:-8080}:80'
+    depends_on:
+      api:
+        condition: service_healthy
+    healthcheck:
+      test: ['CMD', 'wget', '--spider', '-q', 'http://localhost:80/']
+      interval: 15s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+    restart: unless-stopped
