@@ -2,5 +2,14 @@
   "installCommand": "npm ci",
   "buildCommand": "npm run build -w @dd/shared && npm run build -w @dd/frontend",
   "outputDirectory": "dist",
-  "rewrites": [{ "source": "/((?!api/).*)", "destination": "/index.html" }]
+  "rewrites": [
+    {
+      "source": "/api/(.*)",
+      "destination": "/api/router?__path=$1"
+    },
+    {
+      "source": "/((?!api/).*)",
+      "destination": "/index.html"
+    }
+  ]
 }
