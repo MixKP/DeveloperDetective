@@ -132,7 +132,8 @@ jobs:
         uses: docker/build-push-action@v6
         with:
           context: .
-          file: backend/Dockerfile
+          file: Dockerfile
+          target: api
           tags: dd-api:ci
           load: true
           cache-from: type=gha,scope=api
@@ -142,7 +143,8 @@ jobs:
         uses: docker/build-push-action@v6
         with:
           context: .
-          file: frontend/Dockerfile
+          file: Dockerfile
+          target: web
           tags: dd-web:ci
           load: true
           cache-from: type=gha,scope=web
@@ -165,7 +167,7 @@ jobs:
       # Editor scanners report the base tag's findings, most of which live in the
       # bundled npm that the runtime stage deletes; these steps see the real result.
       - name: Scan the API image
-        uses: aquasecurity/trivy-action@0.28.0
+        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
         with:
           image-ref: dd-api:ci
           severity: CRITICAL,HIGH
@@ -174,7 +176,7 @@ jobs:
           scanners: vuln
 
       - name: Scan the web image
-        uses: aquasecurity/trivy-action@0.28.0
+        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
         with:
           image-ref: dd-web:ci
           severity: CRITICAL,HIGH
