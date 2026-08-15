@@ -1,4 +1,4 @@
-import { Router, type Request, type Response } from 'express';
+import { Router, type Request, type RequestHandler, type Response } from 'express';
 import { asyncHandler } from '../../../platform/http/asyncHandler.js';
 import { requireLearnerId } from '../../../platform/http/learnerId.js';
 import type { AnswerQuestion } from '../application/AnswerQuestion.js';
@@ -33,12 +33,15 @@ const handle = (fn: (req: Request, res: Response) => Promise<void>) =>
     }
   });
 
-export function createInvestigationRouter(useCases: InvestigationUseCases): Router {
+export function createInvestigationRouter(
+  useCases: InvestigationUseCases,
+  requireLearner: RequestHandler = requireLearnerId,
+): Router {
   const router = Router();
 
   router.get(
     '/scenarios',
-    requireLearnerId,
+    requireLearner,
     handle(async (req, res) => {
       res.json(await useCases.getScenarioList.execute(req.learnerId));
     }),
@@ -46,7 +49,7 @@ export function createInvestigationRouter(useCases: InvestigationUseCases): Rout
 
   router.get(
     '/scenarios/:id',
-    requireLearnerId,
+    requireLearner,
     handle(async (req, res) => {
       const { id } = scenarioParams.parse(req.params);
       res.json(await useCases.getScenarioDetail.execute(req.learnerId, id));
@@ -55,7 +58,7 @@ export function createInvestigationRouter(useCases: InvestigationUseCases): Rout
 
   router.post(
     '/scenarios/:id/questions/:qid/answer',
-    requireLearnerId,
+    requireLearner,
     handle(async (req, res) => {
       const { id, qid } = questionParams.parse(req.params);
       const { optionId } = answerRequestSchema.parse(req.body);
@@ -65,7 +68,7 @@ export function createInvestigationRouter(useCases: InvestigationUseCases): Rout
 
   router.post(
     '/scenarios/:id/questions/:qid/hint',
-    requireLearnerId,
+    requireLearner,
     handle(async (req, res) => {
       const { id, qid } = questionParams.parse(req.params);
       res.json(await useCases.requestHint.execute(req.learnerId, id, qid));
@@ -74,7 +77,7 @@ export function createInvestigationRouter(useCases: InvestigationUseCases): Rout
 
   router.post(
     '/progress',
-    requireLearnerId,
+    requireLearner,
     handle(async (req, res) => {
       const payload = submitProgressRequestSchema.parse(req.body);
       res.json(await useCases.submitProgress.execute(req.learnerId, payload));
@@ -83,7 +86,7 @@ export function createInvestigationRouter(useCases: InvestigationUseCases): Rout
 
   router.get(
     '/progress',
-    requireLearnerId,
+    requireLearner,
     handle(async (req, res) => {
       res.json(await useCases.getProgress.execute(req.learnerId));
     }),

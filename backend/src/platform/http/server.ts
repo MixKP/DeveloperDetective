@@ -14,7 +14,12 @@ export function createServer({ routers, corsOrigins }: ServerOptions): Express {
   app.use(express.json({ limit: '256kb' }));
 
   if (corsOrigins && corsOrigins.length > 0) {
-    app.use(cors({ origin: corsOrigins, allowedHeaders: ['Content-Type', 'X-Learner-Id'] }));
+    app.use(
+      cors({
+        origin: corsOrigins,
+        allowedHeaders: ['Content-Type', 'X-Learner-Id', 'Authorization'],
+      }),
+    );
   }
 
   for (const { path, router } of routers) {

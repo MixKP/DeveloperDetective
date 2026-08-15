@@ -1,4 +1,4 @@
-import type { Router } from 'express';
+import type { RequestHandler, Router } from 'express';
 import type { AnswerKey, ScenarioCatalog } from '../catalog/index.js';
 import { AnswerQuestion } from './application/AnswerQuestion.js';
 import { GetProgress } from './application/GetProgress.js';
@@ -17,21 +17,26 @@ export interface InvestigationModuleDeps {
   catalog: ScenarioCatalog;
   answerKey: AnswerKey;
   investigations: InvestigationRepository;
+  requireLearner?: RequestHandler;
 }
 
 export function createInvestigationModule({
   catalog,
   answerKey,
   investigations,
+  requireLearner,
 }: InvestigationModuleDeps): { router: Router } {
   return {
-    router: createInvestigationRouter({
-      getScenarioList: new GetScenarioList(catalog, investigations),
-      getScenarioDetail: new GetScenarioDetail(catalog, answerKey, investigations),
-      answerQuestion: new AnswerQuestion(catalog, answerKey, investigations),
-      requestHint: new RequestHint(catalog, answerKey, investigations),
-      submitProgress: new SubmitProgress(catalog, answerKey, investigations),
-      getProgress: new GetProgress(catalog, investigations),
-    }),
+    router: createInvestigationRouter(
+      {
+        getScenarioList: new GetScenarioList(catalog, investigations),
+        getScenarioDetail: new GetScenarioDetail(catalog, answerKey, investigations),
+        answerQuestion: new AnswerQuestion(catalog, answerKey, investigations),
+        requestHint: new RequestHint(catalog, answerKey, investigations),
+        submitProgress: new SubmitProgress(catalog, answerKey, investigations),
+        getProgress: new GetProgress(catalog, investigations),
+      },
+      requireLearner,
+    ),
   };
 }

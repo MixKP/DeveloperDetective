@@ -9,6 +9,11 @@ const envSchema = z.object({
   DIRECT_DATABASE_URL: z.string().optional(),
 
   CORS_ORIGINS: z.string().default(''),
+
+  // Supabase auth. Both optional: with neither set the API runs anonymous-only.
+  // Use the JWT secret for projects on legacy HS256 keys, the URL for asymmetric ones.
+  SUPABASE_URL: z.string().url().optional(),
+  SUPABASE_JWT_SECRET: z.string().min(1).optional(),
 });
 
 export type Env = z.infer<typeof envSchema> & { corsOrigins: string[] };

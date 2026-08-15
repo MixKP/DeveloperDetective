@@ -5,7 +5,9 @@ import {
   type InvestigationRepository,
 } from './modules/investigation/index.js';
 import { createHealthRouter } from './platform/health/health.controller.js';
+import { createRequireLearner } from './platform/http/learnerId.js';
 import { createServer } from './platform/http/server.js';
+import type { VerifyToken } from './platform/http/token.js';
 
 export interface ApiDeps {
   catalog: ScenarioCatalog;
@@ -13,6 +15,8 @@ export interface ApiDeps {
   investigations: InvestigationRepository;
   pingDb: () => Promise<boolean>;
   corsOrigins?: string[];
+  /** Omit to run anonymous-only: bearer tokens are then rejected outright. */
+  verifyToken?: VerifyToken;
 }
 
 export function createApiApp(deps: ApiDeps): Express {
@@ -20,6 +24,7 @@ export function createApiApp(deps: ApiDeps): Express {
     catalog: deps.catalog,
     answerKey: deps.answerKey,
     investigations: deps.investigations,
+    requireLearner: createRequireLearner(deps.verifyToken),
   });
 
   return createServer({

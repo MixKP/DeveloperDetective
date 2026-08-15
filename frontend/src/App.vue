@@ -1,7 +1,34 @@
 <script setup lang="ts">
-import { RouterLink, RouterView } from 'vue-router';
+import { watch } from 'vue';
+import { RouterLink, RouterView, useRouter } from 'vue-router';
 import { Fingerprint } from 'lucide-vue-next';
+import BaseButton from '@/components/ui/BaseButton.vue';
 import ThemeToggle from '@/components/ui/ThemeToggle.vue';
+import { useAuthStore } from '@/stores/auth';
+import { useProgressStore } from '@/stores/progress';
+import { useScenariosStore } from '@/stores/scenarios';
+
+const router = useRouter();
+const auth = useAuthStore();
+const scenarios = useScenariosStore();
+const progress = useProgressStore();
+
+// Signing in or out swaps the learner id, so everything already fetched belongs
+// to somebody else. Drop it and start again from the dashboard.
+watch(
+  () => auth.user?.id ?? null,
+  (next, previous) => {
+    if (next === previous) return;
+    scenarios.current = null;
+    scenarios.list = [];
+    void router.push({ name: 'dashboard' });
+    void progress.fetch();
+  },
+);
+
+async function signOut() {
+  await auth.signOut();
+}
 </script>
 
 <template>
@@ -16,6 +43,17 @@ import ThemeToggle from '@/components/ui/ThemeToggle.vue';
           <p class="hidden text-xs text-muted sm:block">
             You are the engineer on call — not the attacker.
           </p>
+          <template v-if="auth.authEnabled">
+            <span v-if="auth.email" class="hidden text-xs text-muted md:block">{{
+              auth.email
+            }}</span>
+            <BaseButton v-if="auth.signedIn" variant="ghost" size="sm" @click="signOut">
+              Sign out
+            </BaseButton>
+            <RouterLink v-else to="/auth">
+              <BaseButton variant="secondary" size="sm">Sign in</BaseButton>
+            </RouterLink>
+          </template>
           <ThemeToggle />
         </div>
       </div>

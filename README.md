@@ -110,7 +110,7 @@ A **modular monolith** with Clean Architecture applied where it earns its place.
 
 ```
 Browser (Vue 3 SPA)
-   │  X-Learner-Id
+   │  Authorization: Bearer …  (signed in)  ·  X-Learner-Id  (anonymous)
    ▼
 Nginx ── static SPA + reverse proxy /api → api:3000
    ▼
@@ -171,11 +171,21 @@ _and_ by value.
 `score` field and its schema is `.strict()`, so a client-supplied score is **rejected**
 rather than silently ignored.
 
-**`X-Learner-Id` is identity, not authentication.** It is a client-generated UUID in
-`localStorage` — a pseudonymous progress key. Anyone presenting a UUID gets that UUID's quiz
-scores. That is acceptable because the data carries no PII and there are no privileged
-operations behind it. **Do not build auth on top of it.** Supabase Auth would slot in behind
-the same `req.learnerId` seam without touching a use case.
+**Two identities reach the same `req.learnerId`** ([ADR 0007](docs/adr/0007-supabase-auth-behind-the-learner-id-seam.md)):
+
+- `Authorization: Bearer <supabase access token>` — verified locally with `jose`, against
+  `SUPABASE_JWT_SECRET` (legacy HS256) or the project JWKS (asymmetric keys). The token's
+  `sub` is the learner id, so a signed-in learner keeps progress across devices.
+- `X-Learner-Id: <uuid>` — **identity, not authentication** ([ADR 0006](docs/adr/0006-anonymous-learner-id.md)).
+  A client-generated UUID in `localStorage`. Anyone presenting a UUID gets that UUID's quiz
+  scores. Acceptable because the data carries no PII and nothing privileged sits behind it.
+  **Do not build authorization on top of it** — use the token path for that.
+
+Set neither `SUPABASE_URL` nor `SUPABASE_JWT_SECRET` and the API runs anonymous-only,
+rejecting bearer tokens outright instead of trusting them; without `VITE_SUPABASE_URL` and
+`VITE_SUPABASE_ANON_KEY` the frontend hides its sign-in UI to match. Anonymous progress does
+not migrate into a new account — attaching history to an account from a client-supplied id
+is the wrong trade here.
 
 Row Level Security is enabled with no policies on every table (migration `0001`). The API is
 the real boundary, but if the Supabase anon key ever leaks the tables are still unreadable.

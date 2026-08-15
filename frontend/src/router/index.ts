@@ -8,6 +8,7 @@ const router = createRouter({
   history: createWebHistory(),
   routes: [
     { path: '/', name: 'dashboard', component: DashboardView },
+    { path: '/auth', name: 'auth', component: () => import('@/views/AuthView.vue') },
     {
       path: '/cases/:id(\\d+)',
       component: () => import('@/views/CaseLayout.vue'),

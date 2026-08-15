@@ -17,6 +17,7 @@ import {
 } from '@dd/shared';
 import type { ZodType } from 'zod';
 import { getLearnerId } from './learnerId.js';
+import { supabase } from './supabase.js';
 
 const BASE_URL = import.meta.env.VITE_API_BASE_URL ?? '/api';
 
@@ -31,14 +32,30 @@ export class ApiError extends Error {
   }
 }
 
+/**
+ * A signed-in learner is identified by their Supabase token; everyone else falls back
+ * to the anonymous UUID from ADR 0006. The backend accepts either and produces the
+ * same `learnerId`, so no caller here has to care which one is in play.
+ */
+async function identityHeaders(): Promise<Record<string, string>> {
+  if (supabase) {
+    const { data } = await supabase.auth.getSession();
+    const token = data.session?.access_token;
+    if (token) return { Authorization: `Bearer ${token}` };
+  }
+  return { 'X-Learner-Id': getLearnerId() };
+}
+
 async function request<T>(path: string, schema: ZodType<T>, init?: RequestInit): Promise<T> {
+  const identity = await identityHeaders();
+
   let response: Response;
   try {
     response = await fetch(`${BASE_URL}${path}`, {
       ...init,
       headers: {
         'Content-Type': 'application/json',
-        'X-Learner-Id': getLearnerId(),
+        ...identity,
         ...init?.headers,
       },
     });
