@@ -4,6 +4,8 @@ import vue from '@vitejs/plugin-vue';
 import tailwindcss from '@tailwindcss/vite';
 
 export default defineConfig({
+  // The repo keeps one .env at the root; without this, vite would only read frontend/.env.
+  envDir: fileURLToPath(new URL('..', import.meta.url)),
   plugins: [vue(), tailwindcss()],
   resolve: {
     alias: { '@': fileURLToPath(new URL('./src', import.meta.url)) },
