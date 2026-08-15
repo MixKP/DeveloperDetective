@@ -33,6 +33,16 @@ jobs:
       - name: Check formatting
         run: npm run format:check
 
+      # Only production dependencies gate the build. Dev-tool advisories are reported
+      # but not fatal: they never reach a deployed artifact, and treating them as
+      # blocking invites `npm audit fix --force`, which has already downgraded
+      # drizzle-kit to a version whose CLI no longer has the `generate` command.
+      - name: Audit production dependencies
+        run: npm audit --omit=dev --audit-level=low
+
+      - name: Audit everything (advisory only)
+        run: npm audit || true
+
   integration:
     runs-on: ubuntu-latest
     services:
@@ -150,3 +160,24 @@ jobs:
           grep -q '"db":"unreachable"' /tmp/health.json
           curl -s http://localhost:3000/api/nope | grep -q 'NOT_FOUND'
           docker rm -f dd-api-ci
+
+      # Scans the images actually built above, not the Dockerfile's FROM lines.
+      # Editor scanners report the base tag's findings, most of which live in the
+      # bundled npm that the runtime stage deletes; these steps see the real result.
+      - name: Scan the API image
+        uses: aquasecurity/trivy-action@0.28.0
+        with:
+          image-ref: dd-api:ci
+          severity: CRITICAL,HIGH
+          ignore-unfixed: true
+          exit-code: '1'
+          scanners: vuln
+
+      - name: Scan the web image
+        uses: aquasecurity/trivy-action@0.28.0
+        with:
+          image-ref: dd-web:ci
+          severity: CRITICAL,HIGH
+          ignore-unfixed: true
+          exit-code: '1'
+          scanners: vuln

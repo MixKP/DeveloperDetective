@@ -20,7 +20,11 @@ ENV VITE_API_BASE_URL=/api \
     VITE_SUPABASE_ANON_KEY=$VITE_SUPABASE_ANON_KEY
 RUN npm run build -w @dd/shared && npm run build -w @dd/frontend
 
-FROM nginx:1.27-alpine AS runtime
+FROM nginx:1.29-alpine AS runtime
+
+# The base image lags Alpine's package index, so patched openssl/curl/expat land
+# here before the next nginx tag ships them. Costs a layer; removes the CVE backlog.
+RUN apk --no-cache upgrade
 
 COPY frontend/nginx.conf /etc/nginx/conf.d/default.conf
 COPY --from=build /app/frontend/dist /usr/share/nginx/html

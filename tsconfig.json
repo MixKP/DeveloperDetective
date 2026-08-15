@@ -10,5 +10,10 @@
     "noEmit": true,
     "types": ["node"]
   },
-  "include": ["playwright.config.ts", "api"]
+  // Everything that no package's own build covers: the Vercel entry point, and the
+  // tooling configs that sit beside a package rather than inside its rootDir. Without
+  // this they belong to no project at all, so an editor typechecks them against
+  // inferred defaults with no node types and reports `process` as undefined — while
+  // `npm run typecheck` stays green, because it never looked at them either.
+  "include": ["playwright.config.ts", "api", "backend/*.config.ts"]
 }
