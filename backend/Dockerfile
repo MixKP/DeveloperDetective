@@ -27,9 +27,11 @@ RUN npm ci --omit=dev --ignore-scripts \
 COPY --from=build /app/shared/dist shared/dist
 COPY --from=build /app/backend/dist backend/dist
 
-COPY backend/src/db/migrations backend/dist/db/migrations
-COPY backend/src/modules/catalog/infrastructure/seed/scenarios \
-     backend/dist/modules/catalog/infrastructure/seed/scenarios
+# Data the build does not emit: SQL migrations and authored scenario JSON, each
+# copied to the path its resolver expects to find beside the compiled module.
+COPY backend/src/platform/db/migrations backend/dist/platform/db/migrations
+COPY backend/src/modules/catalog/content/scenarios \
+     backend/dist/modules/catalog/content/scenarios
 
 USER node
 

@@ -204,7 +204,7 @@ can say _"this hint costs 10 points"_ without hardcoding the rule.
 
 ## Scenario content
 
-Authored as JSON in `backend/src/modules/catalog/infrastructure/seed/scenarios/`, validated
+Authored as JSON in `backend/src/modules/catalog/content/scenarios/`, validated
 by Zod at import **and** in CI (`tests/content/`), so a broken scenario fails in milliseconds
 rather than during a demo. The schema enforces the rules that are easy to get wrong: a
 `correctOption` that matches no option, a `vulnerableLines` entry past the end of the file,

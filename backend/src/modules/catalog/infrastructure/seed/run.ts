@@ -1,16 +1,13 @@
-import path from 'node:path';
-import { fileURLToPath } from 'node:url';
 import { createDb } from '../../../../platform/db/client.js';
 import { loadEnv } from '../../../../platform/env.js';
+import { scenariosDirectory } from '../../content/index.js';
 import { importScenarios } from './import.js';
 
 const env = loadEnv();
 const { db, close } = createDb(env.DIRECT_DATABASE_URL ?? env.DATABASE_URL);
 
-const directory = path.join(path.dirname(fileURLToPath(import.meta.url)), 'scenarios');
-
 try {
-  const slugs = await importScenarios(db, directory);
+  const slugs = await importScenarios(db, scenariosDirectory);
   console.warn(`Imported ${slugs.length} scenario(s): ${slugs.join(', ')}`);
 } catch (error) {
   console.error(error instanceof Error ? error.message : error);

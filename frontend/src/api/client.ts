@@ -16,8 +16,8 @@ import {
   type SubmitProgressResponse,
 } from '@dd/shared';
 import type { ZodType } from 'zod';
-import { getLearnerId } from './learnerId.js';
-import { supabase } from './supabase.js';
+import { getLearnerId } from '@/auth/learnerId';
+import { supabase } from '@/auth/supabase';
 
 const BASE_URL = import.meta.env.VITE_API_BASE_URL ?? '/api';
 

@@ -3,12 +3,8 @@ import { fileURLToPath } from 'node:url';
 import { sql } from 'drizzle-orm';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { createDb, type DbHandle } from '../../src/platform/db/client.js';
+import { scenariosDirectory } from '../../src/modules/catalog/content/index.js';
 import { importScenarios } from '../../src/modules/catalog/infrastructure/seed/import.js';
-
-const scenariosDir = path.join(
-  path.dirname(fileURLToPath(import.meta.url)),
-  '../../src/modules/catalog/infrastructure/seed/scenarios',
-);
 
 let handle: DbHandle;
 
@@ -53,14 +49,14 @@ describe('scenario import', () => {
 
   it('is idempotent: re-importing changes no counts', async () => {
     const before = await counts();
-    await importScenarios(handle.db, scenariosDir);
-    await importScenarios(handle.db, scenariosDir);
+    await importScenarios(handle.db, scenariosDirectory);
+    await importScenarios(handle.db, scenariosDirectory);
     expect(await counts()).toEqual(before);
   });
 
   it('keeps row ids stable across reseeds, so learner progress survives', async () => {
     const before = await questionIds();
-    await importScenarios(handle.db, scenariosDir);
+    await importScenarios(handle.db, scenariosDirectory);
     expect(await questionIds()).toEqual(before);
   });
 

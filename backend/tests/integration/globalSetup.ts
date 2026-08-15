@@ -1,9 +1,9 @@
-import path from 'node:path';
-import { fileURLToPath } from 'node:url';
 import { drizzle } from 'drizzle-orm/postgres-js';
 import { migrate } from 'drizzle-orm/postgres-js/migrator';
 import postgres from 'postgres';
+import { scenariosDirectory } from '../../src/modules/catalog/content/index.js';
 import { importScenarios } from '../../src/modules/catalog/infrastructure/seed/import.js';
+import { migrationsFolder } from '../../src/platform/db/migrations.js';
 
 const ADMIN_URL =
   process.env.TEST_ADMIN_URL ?? 'postgresql://postgres:postgres@localhost:54322/postgres';
@@ -33,13 +33,9 @@ export async function setup() {
 
   const client = postgres(testDatabaseUrl, { max: 1 });
   const db = drizzle(client);
-  const here = path.dirname(fileURLToPath(import.meta.url));
 
-  await migrate(db, { migrationsFolder: path.join(here, '../../src/db/migrations') });
-  await importScenarios(
-    db,
-    path.join(here, '../../src/modules/catalog/infrastructure/seed/scenarios'),
-  );
+  await migrate(db, { migrationsFolder });
+  await importScenarios(db, scenariosDirectory);
 
   await client.end();
 }

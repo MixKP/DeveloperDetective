@@ -2,9 +2,9 @@ node_modules
 dist
 coverage
 package-lock.json
-backend/src/db/migrations
+backend/src/platform/db/migrations
 # Scenario content is authored by hand and reviewed as prose; leave the formatting alone.
-backend/src/modules/catalog/infrastructure/seed/scenarios
+backend/src/modules/catalog/content/scenarios
 
 playwright-report
 test-results

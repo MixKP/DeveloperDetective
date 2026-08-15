@@ -1,7 +1,7 @@
 import { defineStore } from 'pinia';
 import { computed, ref } from 'vue';
 import type { Session } from '@supabase/supabase-js';
-import { authEnabled, supabase } from '@/api/supabase';
+import { authEnabled, supabase } from '@/auth/supabase';
 
 /** Supabase phrases its failures for developers; these are the ones learners will actually hit. */
 function readableError(message: string): string {

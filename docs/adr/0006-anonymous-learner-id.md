@@ -24,7 +24,7 @@ progress. That is acceptable here because:
 - there are no privileged operations behind it — nothing to escalate to
 - there is no shared or public listing of learners
 
-It is documented as such in the README, in `learnerId.ts`, and in `api/learnerId.ts` on the
+It is documented as such in the README, in `learnerId.ts`, and in `auth/learnerId.ts` on the
 frontend, because the name invites exactly the wrong assumption and a future contributor
 might otherwise build authorization on top of it.
 

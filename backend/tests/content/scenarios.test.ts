@@ -1,15 +1,10 @@
 import { readdirSync, readFileSync } from 'node:fs';
 import path from 'node:path';
-import { fileURLToPath } from 'node:url';
 import { describe, expect, it } from 'vitest';
+import { scenariosDirectory } from '../../src/modules/catalog/content/index.js';
 import { scenarioContentSchema } from '../../src/modules/catalog/infrastructure/seed/contentSchema.js';
 
-const scenariosDir = path.join(
-  path.dirname(fileURLToPath(import.meta.url)),
-  '../../src/modules/catalog/infrastructure/seed/scenarios',
-);
-
-const files = readdirSync(scenariosDir).filter((f) => f.endsWith('.json'));
+const files = readdirSync(scenariosDirectory).filter((f) => f.endsWith('.json'));
 
 describe('authored scenarios', () => {
   it('ships the two scenarios the project promised', () => {
@@ -17,7 +12,7 @@ describe('authored scenarios', () => {
   });
 
   describe.each(files)('%s', (fileName) => {
-    const raw: unknown = JSON.parse(readFileSync(path.join(scenariosDir, fileName), 'utf8'));
+    const raw: unknown = JSON.parse(readFileSync(path.join(scenariosDirectory, fileName), 'utf8'));
     const parsed = scenarioContentSchema.safeParse(raw);
 
     it('satisfies the authoring schema', () => {
