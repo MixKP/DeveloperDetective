@@ -26,13 +26,25 @@ watch(
     scenarios.list = [];
     progress.reset();
 
+    // `void` starts these but does not catch them. `progress.fetch` rethrows so its
+    // callers can react, and a router push rejects whenever a guard redirects
+    // elsewhere — both surface as "Uncaught (in promise)" otherwise. The store has
+    // already recorded the failure in `progress.error`, which the dashboard renders.
+    const ignore = () => {};
+
     if (next === null) {
-      void router.push({ name: 'auth' });
+      router.push({ name: 'auth' }).catch(ignore);
       return;
     }
 
-    void router.push({ name: 'dashboard' });
-    void progress.fetch();
+    router.push({ name: 'dashboard' }).catch(ignore);
+
+    // Refetch both, rather than leaving it to DashboardView's onMounted. Supabase
+    // reports the new session through onAuthStateChange, which can land *after* the
+    // dashboard has already mounted and fetched — and then the clear above wipes the
+    // list it just loaded, leaving a signed-in learner staring at no cases at all.
+    scenarios.fetchList().catch(ignore);
+    progress.fetch().catch(ignore);
   },
 );
 

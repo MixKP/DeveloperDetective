@@ -15,10 +15,15 @@ export function createDb(
   { maxConnections = 10 }: { maxConnections?: number } = {},
 ): DbHandle {
   const client = postgres(connectionString, {
+    // Prepared statements do not survive a transaction-mode pooler.
     prepare: false,
     max: maxConnections,
     idle_timeout: 20,
     connect_timeout: 10,
+    // The pooler drops connections it considers idle, and a client holding the
+    // closed socket only finds out when a query hangs on it. Recycling well inside
+    // that window keeps a stale socket from becoming a stuck request.
+    max_lifetime: 60 * 10,
   });
 
   const db = drizzle(client);

@@ -24,7 +24,7 @@ test('register, land on the dashboard signed in, sign out, sign back in', async 
   await page.getByRole('button', { name: 'Create account' }).click();
 
   // Redirected to the dashboard, header shows the account, cases load with a token.
-  await expect(page).toHaveURL('http://localhost:5173/');
+  await expect(page).toHaveURL('/');
   await expect(page.getByText(EMAIL)).toBeVisible();
   await expect(page.getByRole('button', { name: 'Sign out' })).toBeVisible();
   await expect(page.getByRole('heading', { name: 'Open cases' })).toBeVisible();
@@ -40,7 +40,7 @@ test('register, land on the dashboard signed in, sign out, sign back in', async 
   await page.getByLabel('Email').fill(EMAIL);
   await page.getByLabel('Password').fill(PASSWORD);
   await page.getByRole('button', { name: 'Sign in', exact: true }).last().click();
-  await expect(page).toHaveURL('http://localhost:5173/');
+  await expect(page).toHaveURL('/');
   await page.reload();
   await expect(page.getByText(EMAIL)).toBeVisible();
 
@@ -88,7 +88,9 @@ test("a second account never sees the first one's progress, not even briefly", a
   expect(await page.getByText('Cases opened').locator('..').textContent()).toContain('0');
 });
 
-test('a signed-out visitor cannot deep-link past the gate', async ({ page }) => {
+// @smoke — reads only: no account is created, no row is written. Safe to run against
+// a real deployment as a post-deploy check.
+test('a signed-out visitor cannot deep-link past the gate @smoke', async ({ page }) => {
   await page.goto('/auth');
   test.skip(
     await page.getByText('This build has no Supabase credentials').isVisible(),

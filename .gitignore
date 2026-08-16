@@ -15,3 +15,5 @@ coverage/
 # Playwright artifacts
 playwright-report/
 test-results/
+.vercel
+.env*
