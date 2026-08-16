@@ -17,10 +17,11 @@ export default defineConfig({
     },
   },
   build: {
-    rollupOptions: {
-      output: {
-        manualChunks: (id) => (id.includes('monaco-editor') ? 'monaco' : undefined),
-      },
-    },
+    // The size warning fires on InvestigateView, which carries monaco. That chunk
+    // is meant to be big: it loads only when the editor does. Do not "fix" it with
+    // manualChunks — forcing monaco into a named chunk puts vite's preload helper
+    // in there too, the entry imports the helper, and every page then preloads
+    // 1 MB of gzipped editor. Left alone, first load is ~148 kB.
+    chunkSizeWarningLimit: 4000,
   },
 });

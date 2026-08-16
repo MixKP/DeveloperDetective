@@ -43,7 +43,12 @@ function openCase(id: number) {
     </section>
 
     <section>
-      <p v-if="scenarios.loading" class="text-sm text-muted">Loading cases…</p>
+      <!-- `scenarios.loading` also covers the detail fetch the guard runs on click.
+           Gate the placeholder on there being nothing to show instead, or opening a
+           case would blank the very list it was opened from. -->
+      <p v-if="scenarios.loading && scenarios.list.length === 0" class="text-sm text-muted">
+        Loading cases…
+      </p>
 
       <p v-else-if="scenarios.error" class="text-sm text-sev-critical">
         {{ scenarios.error }}
