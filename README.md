@@ -171,21 +171,23 @@ _and_ by value.
 `score` field and its schema is `.strict()`, so a client-supplied score is **rejected**
 rather than silently ignored.
 
-**Two identities reach the same `req.learnerId`** ([ADR 0007](docs/adr/0007-supabase-auth-behind-the-learner-id-seam.md)):
+**Signing in is required** ([ADR 0008](docs/adr/0008-accounts-are-required.md)). A route
+guard sends unauthenticated visits to `/auth`, and the API refuses anything but a verified
+token whenever auth is configured — a guard alone is a client-side check, which is advice
+rather than a gate.
 
 - `Authorization: Bearer <supabase access token>` — verified locally with `jose`, against
   `SUPABASE_JWT_SECRET` (legacy HS256) or the project JWKS (asymmetric keys). The token's
-  `sub` is the learner id, so a signed-in learner keeps progress across devices.
-- `X-Learner-Id: <uuid>` — **identity, not authentication** ([ADR 0006](docs/adr/0006-anonymous-learner-id.md)).
-  A client-generated UUID in `localStorage`. Anyone presenting a UUID gets that UUID's quiz
-  scores. Acceptable because the data carries no PII and nothing privileged sits behind it.
-  **Do not build authorization on top of it** — use the token path for that.
+  `sub` becomes `req.learnerId`, so progress follows the learner across devices.
+- `X-Learner-Id: <uuid>` — the anonymous fallback of
+  [ADR 0006](docs/adr/0006-anonymous-learner-id.md), **accepted only when the deployment has
+  no Supabase credentials at all**: local development, CI, and `docker compose up` without a
+  project. It is identity, not authentication, so never build authorization on it.
 
-Set neither `SUPABASE_URL` nor `SUPABASE_JWT_SECRET` and the API runs anonymous-only,
-rejecting bearer tokens outright instead of trusting them; without `VITE_SUPABASE_URL` and
-`VITE_SUPABASE_ANON_KEY` the frontend hides its sign-in UI to match. Anonymous progress does
-not migrate into a new account — attaching history to an account from a client-supplied id
-is the wrong trade here.
+> **Deploying:** `VITE_SUPABASE_URL` and `VITE_SUPABASE_ANON_KEY` are inlined by Vite at
+> **build** time, not read at runtime. A CD pipeline that does not set them produces a
+> bundle with no sign-in UI and no gate — which looks like the feature was never shipped.
+> Set them alongside `SUPABASE_URL` for the API.
 
 Row Level Security is enabled with no policies on every table (migration `0001`). The API is
 the real boundary, but if the Supabase anon key ever leaks the tables are still unreadable.
@@ -223,9 +225,9 @@ key committed to a public repository** (High).
 
 | Command                    | Does                                                                        |
 | -------------------------- | --------------------------------------------------------------------------- |
-| `npm test`                 | 114 tests — domain, application, API, content, stores. No database required |
+| `npm test`                 | 122 tests — domain, application, API, content, stores. No database required |
 | `npm run test:integration` | 21 tests — Drizzle repositories and the seed against real PostgreSQL        |
-| `npm run test:e2e`         | 7 tests — the full journey in a real browser (Playwright)                   |
+| `npm run test:e2e`         | 10 tests — the full journey in a real browser (Playwright)                  |
 | `npm run test:all`         | All three levels                                                            |
 | `npm run typecheck`        | All three workspaces                                                        |
 | `npm run lint`             | Includes the architecture boundary rules                                    |
@@ -272,20 +274,41 @@ the quiz — the only place they could go to make progress.
 
 ## Verifying it works
 
+Every learner endpoint needs an account, so get a token first. Against the local stack
+that is one call — the anon key below is the fixed development key `supabase start`
+prints, not a secret.
+
 ```bash
+ANON=$(npx supabase status -o json | python3 -c 'import sys,json;print(json.load(sys.stdin)["ANON_KEY"])')
+
+TOKEN=$(curl -s -X POST 'http://127.0.0.1:54321/auth/v1/signup' \
+  -H "apikey: $ANON" -H 'Content-Type: application/json' \
+  -d '{"email":"curl-demo@example.com","password":"secret123"}' \
+  | python3 -c 'import sys,json;print(json.load(sys.stdin)["access_token"])')
+```
+
+If that address already has an account, swap `signup` for
+`token?grant_type=password` to sign in instead.
+
+```bash
+# Health is a liveness probe, not a learner endpoint — no credential.
 curl localhost:3000/api/health
 # {"status":"ok","db":"ok"}
 
+# No token, no data. The gate is the API's, not the browser's (ADR 0008).
+curl -s localhost:3000/api/scenarios/1
+# {"error":{"code":"INVALID_TOKEN","message":"Sign in to continue."}}
+
 # The answer key must not appear. This should print nothing.
-curl -s -H 'X-Learner-Id: 3f9f1a3e-6a4e-4f2b-9c3d-1a2b3c4d5e6f' \
+curl -s -H "Authorization: Bearer $TOKEN" \
   localhost:3000/api/scenarios/1 | grep -Ei 'correctOption|"hints"'
 
 # A submitted score is rejected, not ignored.
 curl -s -X POST -H 'Content-Type: application/json' \
-  -H 'X-Learner-Id: 3f9f1a3e-6a4e-4f2b-9c3d-1a2b3c4d5e6f' \
+  -H "Authorization: Bearer $TOKEN" \
   -d '{"scenarioId":1,"completed":true,"score":100}' \
   localhost:3000/api/progress
-# {"error":{"code":"VALIDATION_ERROR", ...}}
+# {"error":{"code":"VALIDATION_ERROR", ... "Unrecognized key(s) in object: 'score'"}}
 ```
 
 Then walk the flow in the browser: dashboard → brief → investigate → quiz (take a hint, miss

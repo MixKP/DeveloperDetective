@@ -1,4 +1,5 @@
 import { expect, test } from '@playwright/test';
+import { registerFreshLearner } from './support/auth';
 
 const EMAIL = `learner-${Date.now()}@example.com`;
 const PASSWORD = 'secret123';
@@ -9,8 +10,7 @@ test('register, land on the dashboard signed in, sign out, sign back in', async 
 
   await page.goto('/auth');
 
-  // Builds without Supabase credentials are anonymous-only by design (ADR 0007);
-  // there is no account flow to exercise.
+  // Builds without Supabase credentials have no gate and no account flow (ADR 0008).
   const unavailable = page.getByText('This build has no Supabase credentials');
   test.skip(await unavailable.isVisible(), 'auth is not configured for this build');
 
@@ -33,11 +33,10 @@ test('register, land on the dashboard signed in, sign out, sign back in', async 
   // A fresh account starts at zero.
   await expect(page.getByText('Cases solved').locator('..')).toContainText('0');
 
+  // Signing out drops the learner back at the gate, not at the dashboard.
   await page.getByRole('button', { name: 'Sign out' }).click();
-  await expect(page.getByRole('button', { name: 'Sign in' })).toBeVisible();
+  await expect(page).toHaveURL(/\/auth$/);
 
-  // The session survives a reload once signed back in.
-  await page.getByRole('button', { name: 'Sign in' }).click();
   await page.getByLabel('Email').fill(EMAIL);
   await page.getByLabel('Password').fill(PASSWORD);
   await page.getByRole('button', { name: 'Sign in', exact: true }).last().click();
@@ -55,4 +54,49 @@ test('register, land on the dashboard signed in, sign out, sign back in', async 
 
   // The 400 is the wrong-password rejection above; the browser logs every failed fetch.
   expect(errors.filter((e) => !e.includes('400'))).toEqual([]);
+});
+
+test("a second account never sees the first one's progress, not even briefly", async ({ page }) => {
+  const first = await registerFreshLearner(page);
+  test.skip(first === null, 'auth is not configured for this build');
+
+  // Give the first account something to leak.
+  await page.getByRole('article').first().getByRole('button').click();
+  await expect(page).toHaveURL(/\/cases\/\d+\/brief/);
+  await page.goto('/');
+  await expect(page.getByText('Cases opened').locator('..')).toContainText('1');
+
+  await page.getByRole('button', { name: 'Sign out' }).click();
+  await expect(page).toHaveURL(/\/auth$/);
+
+  // Hold the second account's progress response open. Without it the fetch lands so
+  // fast that a stale store is invisible to the test while still being visible to a
+  // real learner on a slower link — the assertion below would pass either way.
+  await page.route('**/api/progress', async (route) => {
+    await new Promise((resolve) => setTimeout(resolve, 2000));
+    await route.continue();
+  });
+
+  await page.getByRole('button', { name: 'Create one' }).click();
+  await page.getByLabel('Email').fill(`learner-${Date.now()}-second@example.com`);
+  await page.getByLabel('Password').fill('secret123');
+  await page.getByRole('button', { name: 'Create account' }).click();
+
+  // The stores are cleared synchronously when the account changes, so the first
+  // render the second learner sees is already their own zero — no waiting on the API.
+  await expect(page.getByRole('heading', { name: 'Open cases' })).toBeVisible();
+  expect(await page.getByText('Cases opened').locator('..').textContent()).toContain('0');
+});
+
+test('a signed-out visitor cannot deep-link past the gate', async ({ page }) => {
+  await page.goto('/auth');
+  test.skip(
+    await page.getByText('This build has no Supabase credentials').isVisible(),
+    'auth is not configured for this build',
+  );
+
+  for (const target of ['/', '/cases/1/brief', '/cases/1/quiz', '/cases/1/debrief']) {
+    await page.goto(target);
+    await expect(page).toHaveURL(/\/auth$/);
+  }
 });

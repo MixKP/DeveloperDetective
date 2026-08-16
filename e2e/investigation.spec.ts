@@ -1,8 +1,14 @@
 import { expect, test, type Page } from '@playwright/test';
+import { registerFreshLearner } from './support/auth';
 
 const SQL_CASE = 'Authentication bypass in the login service';
 
 const CORRECT = ['auth.service.ts lines 23-24', 'The leading quote closes', 'parameterised query'];
+
+// The app is gated, and each test wants a learner with no progress behind it.
+test.beforeEach(async ({ page }) => {
+  await registerFreshLearner(page);
+});
 
 async function openSqlCase(page: Page) {
   await page.goto('/');

@@ -45,8 +45,8 @@ async function submit() {
           <ShieldCheck class="size-5 text-primary" aria-hidden="true" />
           <h1 class="text-lg font-semibold">{{ title }}</h1>
           <p class="text-sm text-muted">
-            An account carries your case progress between devices. Without one you can still work
-            through every case — progress just stays in this browser.
+            Cases are assigned to you personally, so your scores, solved cases, and hint usage
+            follow you between devices. Create an account to begin.
           </p>
         </header>
 
@@ -93,7 +93,7 @@ async function submit() {
           </button>
         </p>
 
-        <RouterLink to="/" class="text-sm text-muted underline">
+        <RouterLink v-if="!auth.authEnabled" to="/" class="text-sm text-muted underline">
           Continue without an account
         </RouterLink>
       </div>

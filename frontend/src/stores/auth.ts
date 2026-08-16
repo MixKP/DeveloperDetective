@@ -16,7 +16,6 @@ function readableError(message: string): string {
 
 export const useAuthStore = defineStore('auth', () => {
   const session = ref<Session | null>(null);
-  const ready = ref(false);
   const pending = ref(false);
   const error = ref<string | null>(null);
   /** Set after a sign-up that Supabase wants confirmed by email before it issues a session. */
@@ -26,23 +25,36 @@ export const useAuthStore = defineStore('auth', () => {
   const email = computed(() => user.value?.email ?? null);
   const signedIn = computed(() => session.value !== null);
 
-  /**
-   * Resolves once the persisted session (if any) has been restored, so the first
-   * API call of the page load already carries a token instead of racing it.
-   */
-  async function init() {
-    if (!supabase) {
-      ready.value = true;
-      return;
+  let restoring: Promise<void> | null = null;
+
+  async function restore() {
+    if (!supabase) return;
+
+    try {
+      const { data } = await supabase.auth.getSession();
+      session.value = data.session;
+
+      supabase.auth.onAuthStateChange((_event, next) => {
+        session.value = next;
+      });
+    } catch {
+      // Reading the persisted session can fail outright — storage blocked in a
+      // partitioned context, for one. Treat it as "signed out" rather than letting
+      // the rejection escape: the route guard awaits this on every navigation, and
+      // a rejected promise there aborts the navigation and renders nothing at all.
+      session.value = null;
     }
+  }
 
-    const { data } = await supabase.auth.getSession();
-    session.value = data.session;
-    ready.value = true;
-
-    supabase.auth.onAuthStateChange((_event, next) => {
-      session.value = next;
-    });
+  /**
+   * Resolves once the persisted session (if any) has been restored. Idempotent and
+   * safe to await from anywhere: the route guard has to, because vue-router begins
+   * its first navigation when the router is installed, well before anything mounts —
+   * so a guard that reads `signedIn` without waiting bounces every deep link.
+   */
+  function init(): Promise<void> {
+    restoring ??= restore();
+    return restoring;
   }
 
   async function run(action: () => Promise<{ error: { message: string } | null }>) {
@@ -101,7 +113,6 @@ export const useAuthStore = defineStore('auth', () => {
 
   return {
     session,
-    ready,
     pending,
     error,
     notice,

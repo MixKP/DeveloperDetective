@@ -13,14 +13,24 @@ const auth = useAuthStore();
 const scenarios = useScenariosStore();
 const progress = useProgressStore();
 
-// Signing in or out swaps the learner id, so everything already fetched belongs
-// to somebody else. Drop it and start again from the dashboard.
+// Signing in or out swaps the learner id, so everything already fetched belongs to
+// somebody else. Drop it, then move: signing out has to leave the app, because the
+// route guard only runs on navigation and would otherwise leave a signed-out learner
+// sitting on a page full of the previous account's data.
 watch(
   () => auth.user?.id ?? null,
   (next, previous) => {
     if (next === previous) return;
+
     scenarios.current = null;
     scenarios.list = [];
+    progress.reset();
+
+    if (next === null) {
+      void router.push({ name: 'auth' });
+      return;
+    }
+
     void router.push({ name: 'dashboard' });
     void progress.fetch();
   },

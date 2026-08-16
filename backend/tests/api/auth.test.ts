@@ -46,13 +46,6 @@ describe('bearer authentication', () => {
       .set('Authorization', 'Bearer good-token')
       .expect(200);
     expect(mine.body.stats.casesStarted).toBe(1);
-
-    // An anonymous learner is a different person entirely.
-    const anonymous = await request(app)
-      .get('/api/progress')
-      .set('X-Learner-Id', LEARNER)
-      .expect(200);
-    expect(anonymous.body.stats.casesStarted).toBe(0);
   });
 
   it('rejects a token it cannot verify instead of falling back to anonymous', async () => {
@@ -64,12 +57,29 @@ describe('bearer authentication', () => {
     expect(res.body.error.code).toBe('INVALID_TOKEN');
   });
 
-  it('still allows the anonymous header when no token is sent', async () => {
-    await request(app).get('/api/scenarios').set('X-Learner-Id', LEARNER).expect(200);
+  it('refuses the anonymous header once accounts exist, so the gate cannot be skipped', async () => {
+    const res = await request(app).get('/api/scenarios').set('X-Learner-Id', LEARNER).expect(401);
+    expect(res.body.error.code).toBe('INVALID_TOKEN');
+  });
+
+  it('refuses a request carrying no credential at all', async () => {
+    const res = await request(app).get('/api/scenarios').expect(401);
+    expect(res.body.error.code).toBe('INVALID_TOKEN');
   });
 });
 
 describe('deployments without auth configured', () => {
+  it('falls back to the anonymous identifier so the app still runs', async () => {
+    const anonymousOnly = createApiApp({
+      catalog: new StubCatalog(),
+      answerKey: new StubAnswerKey(),
+      investigations: new InMemoryInvestigationRepository(),
+      pingDb: async () => true,
+    });
+
+    await request(anonymousOnly).get('/api/scenarios').set('X-Learner-Id', LEARNER).expect(200);
+  });
+
   it('rejects bearer tokens outright rather than trusting them', async () => {
     const anonymousOnly = createApiApp({
       catalog: new StubCatalog(),

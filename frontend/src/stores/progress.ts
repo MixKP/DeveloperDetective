@@ -31,5 +31,12 @@ export const useProgressStore = defineStore('progress', () => {
     }
   }
 
-  return { records, stats, loading, error, fetch };
+  /** Called when the signed-in learner changes — these numbers belong to the old one. */
+  function reset() {
+    records.value = [];
+    stats.value = { ...EMPTY_STATS };
+    error.value = null;
+  }
+
+  return { records, stats, loading, error, fetch, reset };
 });

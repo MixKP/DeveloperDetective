@@ -16,19 +16,24 @@ const missingId = () =>
   new HttpError(
     400,
     'MISSING_LEARNER_ID',
-    'Send an Authorization: Bearer token, or an X-Learner-Id UUID to continue anonymously.',
+    'Send an X-Learner-Id UUID. This deployment has no accounts configured.',
   );
 
+const signInRequired = () => new HttpError(401, 'INVALID_TOKEN', 'Sign in to continue.');
+
 /**
- * Resolves the learner id for a request, from either:
+ * Resolves the learner id for a request.
  *
- *   1. `Authorization: Bearer <supabase access token>` — verified, and the user's
- *      `sub` becomes the learner id. Signed-in learners keep their progress across devices.
- *   2. `X-Learner-Id: <uuid>` — the anonymous identifier from ADR 0006. Identity, not
- *      authentication: anyone presenting a UUID gets that UUID's progress.
+ * With a verifier configured, the only accepted credential is
+ * `Authorization: Bearer <supabase access token>`; the verified `sub` becomes the
+ * learner id. `X-Learner-Id` is refused, because a gate the client can skip by
+ * dropping a header is not a gate (ADR 0008).
  *
- * Both write the same `req.learnerId`, so no use case knows which one was used.
- * When no verifier is configured, only the anonymous path exists.
+ * With no verifier — a build that was given no Supabase credentials, meaning local
+ * development and CI — the anonymous `X-Learner-Id` UUID of ADR 0006 is accepted
+ * instead, so the app still runs without a project behind it.
+ *
+ * Either way it writes the same `req.learnerId`, so no use case knows the difference.
  */
 export function createRequireLearner(verifyToken?: VerifyToken): RequestHandler {
   return function requireLearner(req: Request, _res: Response, next: NextFunction): void {
@@ -52,6 +57,11 @@ export function createRequireLearner(verifyToken?: VerifyToken): RequestHandler 
           next(new HttpError(401, 'INVALID_TOKEN', 'Your session is not valid. Sign in again.'));
         },
       );
+      return;
+    }
+
+    if (verifyToken) {
+      next(signInRequired());
       return;
     }
 

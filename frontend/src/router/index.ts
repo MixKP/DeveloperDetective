@@ -1,6 +1,7 @@
 import { createRouter, createWebHistory } from 'vue-router';
 import type { Stage } from '@dd/shared';
 import { stageOrder, stageReachable } from '@/design/theme';
+import { useAuthStore } from '@/stores/auth';
 import { useScenariosStore } from '@/stores/scenarios';
 import DashboardView from '@/views/DashboardView.vue';
 
@@ -31,6 +32,20 @@ const router = createRouter({
 
 const isStage = (name: unknown): name is Stage =>
   typeof name === 'string' && stageOrder.includes(name as Stage);
+
+/**
+ * Every route but `/auth` needs an account. A build with no Supabase credentials
+ * has no way to sign anyone in, so it stays on the anonymous identifier instead of
+ * locking the app behind a door it cannot open — that is the local and CI case,
+ * never a deployment that configured auth.
+ */
+router.beforeEach(async (to) => {
+  const auth = useAuthStore();
+  await auth.init();
+  if (!auth.authEnabled) return true;
+  if (to.name === 'auth' || auth.signedIn) return true;
+  return { name: 'auth' };
+});
 
 router.beforeEach(async (to) => {
   if (!isStage(to.name)) return true;
