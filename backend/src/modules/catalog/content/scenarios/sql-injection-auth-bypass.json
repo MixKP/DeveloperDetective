@@ -36,6 +36,18 @@
         23,
         24
       ],
+      "changedLines": [
+        13,
+        14,
+        15,
+        20,
+        21,
+        22,
+        23,
+        24,
+        25,
+        26
+      ],
       "recentlyChanged": true
     },
     {
@@ -43,6 +55,13 @@
       "language": "typescript",
       "code": "import { Router } from 'express';\nimport { authenticate } from '../services/auth.service';\nimport { issueSession } from '../services/session.service';\n\nexport const authRouter = Router();\n\nauthRouter.post('/login', async (req, res) => {\n  const { email, password } = req.body ?? {};\n\n  if (typeof email !== 'string' || typeof password !== 'string') {\n    return res.status(400).json({ error: 'email and password are required' });\n  }\n\n  const user = await authenticate({ email, password });\n\n  if (!user) {\n    return res.status(401).json({ error: 'Invalid credentials' });\n  }\n\n  const token = await issueSession(user);\n  return res.json({ token, role: user.role });\n});\n",
       "vulnerableLines": [],
+      "changedLines": [
+        10,
+        11,
+        12,
+        20,
+        21
+      ],
       "recentlyChanged": true
     },
     {
@@ -50,6 +69,7 @@
       "language": "typescript",
       "code": "import { Pool } from 'pg';\nimport { config } from '../config';\n\nexport const pool = new Pool({\n  connectionString: config.databaseUrl,\n  max: 20,\n  idleTimeoutMillis: 30_000,\n});\n\npool.on('error', (error) => {\n  console.error('Unexpected pool error', error);\n});\n",
       "vulnerableLines": [],
+      "changedLines": [],
       "recentlyChanged": false
     },
     {
@@ -57,6 +77,7 @@
       "language": "typescript",
       "code": "export interface User {\n  id: string;\n  email: string;\n  password_hash: string;\n  role: 'customer' | 'support' | 'admin';\n}\n",
       "vulnerableLines": [],
+      "changedLines": [],
       "recentlyChanged": false
     }
   ],

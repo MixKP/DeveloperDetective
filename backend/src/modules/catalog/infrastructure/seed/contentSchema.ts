@@ -29,11 +29,16 @@ const fileSchema = z
     language: z.string().min(1),
     code: z.string().min(1),
     vulnerableLines: z.array(z.number().int().positive()).default([]),
+    changedLines: z.array(z.number().int().positive()).default([]),
     recentlyChanged: z.boolean().default(false),
   })
   .refine((f) => f.vulnerableLines.every((line) => line <= f.code.split('\n').length), {
     message: 'vulnerableLines points past the end of the file',
     path: ['vulnerableLines'],
+  })
+  .refine((f) => f.changedLines.every((line) => line <= f.code.split('\n').length), {
+    message: 'changedLines points past the end of the file',
+    path: ['changedLines'],
   });
 
 export const scenarioContentSchema = z

@@ -31,7 +31,7 @@ const remaining = computed(() => props.total - props.revealed.length);
 
     <BaseButton
       v-if="remaining > 0"
-      variant="ghost"
+      variant="secondary"
       size="sm"
       :disabled="disabled"
       class="self-start"

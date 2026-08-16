@@ -10,8 +10,9 @@ const props = withDefaults(
     language: string;
     path: string;
     highlightLines?: number[];
+    changedLines?: number[];
   }>(),
-  { highlightLines: () => [] },
+  { highlightLines: () => [], changedLines: () => [] },
 );
 
 setupMonaco();
@@ -39,18 +40,30 @@ function applyHighlights() {
   const instance = editor.value;
   if (!instance) return;
 
+  // Changed lines go on first so a line that is both keeps the vulnerable styling on
+  // top. They deliberately get a gutter bar and no line background: ten highlighted
+  // lines would drown out the two that matter once the answer is unlocked.
+  const changed = props.changedLines.map((line) => ({
+    range: { startLineNumber: line, startColumn: 1, endLineNumber: line, endColumn: 1 },
+    options: {
+      isWholeLine: true,
+      marginClassName: 'dd-changed-margin',
+      hoverMessage: { value: 'Changed by the deploy in the brief.' },
+    },
+  }));
+
+  const vulnerable = props.highlightLines.map((line) => ({
+    range: { startLineNumber: line, startColumn: 1, endLineNumber: line, endColumn: 1 },
+    options: {
+      isWholeLine: true,
+      className: 'dd-vulnerable-line',
+      marginClassName: 'dd-vulnerable-margin',
+      hoverMessage: { value: 'Flagged during the investigation.' },
+    },
+  }));
+
   decorations ??= instance.createDecorationsCollection();
-  decorations.set(
-    props.highlightLines.map((line) => ({
-      range: { startLineNumber: line, startColumn: 1, endLineNumber: line, endColumn: 1 },
-      options: {
-        isWholeLine: true,
-        className: 'dd-vulnerable-line',
-        marginClassName: 'dd-vulnerable-margin',
-        hoverMessage: { value: 'Flagged during the investigation.' },
-      },
-    })),
-  );
+  decorations.set([...changed, ...vulnerable]);
 }
 
 function onMount(instance: Monaco.editor.IStandaloneCodeEditor) {
@@ -58,7 +71,9 @@ function onMount(instance: Monaco.editor.IStandaloneCodeEditor) {
   applyHighlights();
 }
 
-watch(() => [props.highlightLines, props.path], applyHighlights, { deep: true });
+watch(() => [props.highlightLines, props.changedLines, props.path], applyHighlights, {
+  deep: true,
+});
 
 onBeforeUnmount(() => {
   decorations?.clear();
@@ -72,8 +87,15 @@ onBeforeUnmount(() => {
       class="flex items-center justify-between gap-3 border-b border-white/5 px-4 py-2.5 text-xs"
     >
       <span class="truncate font-mono text-code-text">{{ path }}</span>
-      <span v-if="highlightLines.length > 0" class="shrink-0 text-sev-critical">
-        {{ highlightLines.length }} line{{ highlightLines.length === 1 ? '' : 's' }} flagged
+      <span class="flex shrink-0 items-center gap-3">
+        <span v-if="changedLines.length > 0" class="flex items-center gap-1.5 text-code-muted">
+          <span class="h-3 w-[3px] rounded-full bg-primary" aria-hidden="true" />
+          {{ changedLines.length }} changed in this deploy
+        </span>
+        <span v-if="highlightLines.length > 0" class="flex items-center gap-1.5 text-sev-critical">
+          <span class="h-3 w-[3px] rounded-full bg-sev-critical" aria-hidden="true" />
+          {{ highlightLines.length }} flagged
+        </span>
       </span>
     </header>
 
@@ -98,6 +120,11 @@ onBeforeUnmount(() => {
 }
 .dd-vulnerable-margin {
   background-color: var(--dd-sev-critical);
+  width: 3px !important;
+  margin-left: 3px;
+}
+.dd-changed-margin {
+  background-color: var(--dd-primary);
   width: 3px !important;
   margin-left: 3px;
 }

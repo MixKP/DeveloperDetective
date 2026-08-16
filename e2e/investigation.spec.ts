@@ -43,8 +43,13 @@ test.describe('the learner journey', () => {
 
     await expect(page.locator('.dd-vulnerable-line')).toHaveCount(0);
 
+    // The deploy markers are not part of the answer key, so they are on from the start:
+    // they narrow the hunt to the lines the incident touched without naming the defect.
+    await expect(page.locator('.dd-changed-margin').first()).toBeVisible();
+    await expect(page.getByText('10 changed in this deploy')).toBeVisible();
+
     await expect(page.getByText('src/services/auth.service.ts', { exact: false })).toBeVisible();
-    await expect(page.getByText('changed in this deploy')).toBeVisible();
+    await expect(page.getByText('2 files changed in this deploy')).toBeVisible();
   });
 
   test('the debrief cannot be reached by deep-linking past the quiz', async ({ page }) => {
@@ -85,7 +90,7 @@ test.describe('the learner journey', () => {
     await expect(page.getByText('3 of 3 findings confirmed')).toBeVisible();
 
     await page.getByRole('link', { name: 'Investigate' }).click();
-    await expect(page.getByText('2 lines flagged')).toBeVisible();
+    await expect(page.getByText('2 flagged')).toBeVisible();
 
     await page.getByRole('link', { name: 'Debrief' }).click();
     await expect(page).toHaveURL(/\/debrief/);

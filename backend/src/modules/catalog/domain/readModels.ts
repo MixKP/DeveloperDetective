@@ -29,6 +29,12 @@ export interface FileContent {
   language: string;
   code: string;
   recentlyChanged: boolean;
+  /**
+   * Lines the incident's deploy touched. Unlike vulnerableLines this is not part of
+   * the answer key — it says where to look, not what is wrong — so it ships with the
+   * file from the moment the learner opens the case.
+   */
+  changedLines: number[];
 }
 
 export interface QuestionContent {

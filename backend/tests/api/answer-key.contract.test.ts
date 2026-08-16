@@ -112,6 +112,13 @@ describe('the answer key never reaches the client', () => {
     }
   });
 
+  it('ships the deploy markers straight away — they say where to look, not what is wrong', async () => {
+    const res = await asLearner(request(app).get(`/api/scenarios/${SCENARIO_ID}`)).expect(200);
+    const authFile = res.body.files.find((f: { path: string }) => f.path === 'src/auth.service.ts');
+    expect(authFile.changedLines.length).toBeGreaterThan(0);
+    expect(authFile.vulnerableLines).toEqual([]);
+  });
+
   it('ships vulnerable lines once the locate question is solved', async () => {
     await asLearner(request(app).post(`/api/scenarios/${SCENARIO_ID}/questions/${LOCATE_Q}/answer`))
       .send({ optionId: 'b' })

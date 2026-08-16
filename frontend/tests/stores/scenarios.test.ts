@@ -166,6 +166,7 @@ describe('gated content invalidates the cached payload', () => {
             language: 'typescript',
             code: 'x',
             recentlyChanged: true,
+            changedLines: [],
             vulnerableLines: [23, 24],
           },
         ],

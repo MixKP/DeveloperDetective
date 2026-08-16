@@ -1,0 +1,1 @@
+ALTER TABLE "files" ADD COLUMN "changed_lines" jsonb DEFAULT '[]'::jsonb NOT NULL;
