@@ -88,9 +88,7 @@ test("a second account never sees the first one's progress, not even briefly", a
   expect(await page.getByText('Cases opened').locator('..').textContent()).toContain('0');
 });
 
-// @smoke — reads only: no account is created, no row is written. Safe to run against
-// a real deployment as a post-deploy check.
-test('a signed-out visitor cannot deep-link past the gate @smoke', async ({ page }) => {
+test('a signed-out visitor cannot deep-link past the gate', async ({ page }) => {
   await page.goto('/auth');
   test.skip(
     await page.getByText('This build has no Supabase credentials').isVisible(),

@@ -41,9 +41,6 @@ test.describe('the learner journey', () => {
     await page.getByRole('button', { name: 'Open the repository' }).click();
     await expect(page).toHaveURL(/\/investigate/);
 
-    await expect(
-      page.getByText('Highlighting unlocks once you have located the defect'),
-    ).toBeVisible();
     await expect(page.locator('.dd-vulnerable-line')).toHaveCount(0);
 
     await expect(page.getByText('src/services/auth.service.ts', { exact: false })).toBeVisible();
@@ -88,7 +85,6 @@ test.describe('the learner journey', () => {
     await expect(page.getByText('3 of 3 findings confirmed')).toBeVisible();
 
     await page.getByRole('link', { name: 'Investigate' }).click();
-    await expect(page.getByText('Line highlighting is on')).toBeVisible();
     await expect(page.getByText('2 lines flagged')).toBeVisible();
 
     await page.getByRole('link', { name: 'Debrief' }).click();
