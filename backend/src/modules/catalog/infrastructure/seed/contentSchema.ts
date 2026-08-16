@@ -29,16 +29,23 @@ const fileSchema = z
     language: z.string().min(1),
     code: z.string().min(1),
     vulnerableLines: z.array(z.number().int().positive()).default([]),
-    changedLines: z.array(z.number().int().positive()).default([]),
+    previousCode: z.string().nullable().default(null),
     recentlyChanged: z.boolean().default(false),
   })
   .refine((f) => f.vulnerableLines.every((line) => line <= f.code.split('\n').length), {
     message: 'vulnerableLines points past the end of the file',
     path: ['vulnerableLines'],
   })
-  .refine((f) => f.changedLines.every((line) => line <= f.code.split('\n').length), {
-    message: 'changedLines points past the end of the file',
-    path: ['changedLines'],
+  // A file the deploy touched is exactly a file with a before, and the viewer decides
+  // which editor to render from that. Letting the two disagree would show a learner a
+  // diff for an untouched file, or hide the diff on the one the brief points at.
+  .refine((f) => f.recentlyChanged === (f.previousCode !== null), {
+    message: 'recentlyChanged must be true exactly when previousCode is set',
+    path: ['previousCode'],
+  })
+  .refine((f) => f.previousCode !== f.code, {
+    message: 'previousCode is identical to code, so the diff would be empty',
+    path: ['previousCode'],
   });
 
 export const scenarioContentSchema = z

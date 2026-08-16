@@ -63,7 +63,7 @@ async function importOne(db: Database, content: ScenarioContentInput): Promise<v
       code: file.code,
       language: file.language,
       vulnerableLines: file.vulnerableLines,
-      changedLines: file.changedLines,
+      previousCode: file.previousCode,
       recentlyChanged: file.recentlyChanged,
       orderIndex: index,
     };

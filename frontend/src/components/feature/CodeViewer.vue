@@ -1,7 +1,7 @@
 <script setup lang="ts">
-import { onBeforeUnmount, shallowRef, watch } from 'vue';
+import { computed, onBeforeUnmount, shallowRef, watch } from 'vue';
 import type * as Monaco from 'monaco-editor';
-import { VueMonacoEditor } from '@guolao/vue-monaco-editor';
+import { VueMonacoDiffEditor, VueMonacoEditor } from '@guolao/vue-monaco-editor';
 import { setupMonaco } from '@/monaco';
 
 const props = withDefaults(
@@ -10,22 +10,27 @@ const props = withDefaults(
     language: string;
     path: string;
     highlightLines?: number[];
-    changedLines?: number[];
+    previousCode?: string | null;
   }>(),
-  { highlightLines: () => [], changedLines: () => [] },
+  { highlightLines: () => [], previousCode: null },
 );
 
 setupMonaco();
 
+// A file with a before is a file the incident's deploy touched, and that is exactly
+// when a diff is worth showing. Everything else opens as a plain read-only file.
+const isDiff = computed(() => props.previousCode !== null);
+
 const editor = shallowRef<Monaco.editor.IStandaloneCodeEditor | null>(null);
 let decorations: Monaco.editor.IEditorDecorationsCollection | null = null;
+let modelListener: Monaco.IDisposable | null = null;
 
-const options: Monaco.editor.IStandaloneEditorConstructionOptions = {
+const shared = {
   readOnly: true,
   domReadOnly: true,
   minimap: { enabled: false },
   lineNumbers: 'on',
-  // Reserve room between the line numbers and the code for the marker bars.
+  // Reserve room between the line numbers and the code for the vulnerable-line bar.
   lineDecorationsWidth: 12,
   scrollBeyondLastLine: false,
   fontSize: 13,
@@ -36,53 +41,68 @@ const options: Monaco.editor.IStandaloneEditorConstructionOptions = {
   occurrencesHighlight: 'off',
   folding: false,
   scrollbar: { alwaysConsumeMouseWheel: false },
+} as const;
+
+const options: Monaco.editor.IStandaloneEditorConstructionOptions = { ...shared };
+
+const diffOptions: Monaco.editor.IStandaloneDiffEditorConstructionOptions = {
+  ...shared,
+  // Inline, so the file still reads top to bottom as a file. Side by side would halve
+  // the width the code has and make following a call chain harder than reading a diff
+  // is worth. `renderIndicators` puts the +/- in the gutter next to the colour.
+  renderSideBySide: false,
+  renderIndicators: true,
+  renderMarginRevertIcon: false,
+  originalEditable: false,
+  ignoreTrimWhitespace: false,
 };
 
 function applyHighlights() {
   const instance = editor.value;
   if (!instance) return;
 
-  // Both markers use linesDecorations, not margin: a margin decoration lands on the far
-  // side of the line-number gutter, where it reads as an edge artifact rather than as a
-  // mark on the line. This zone sits directly against the code.
-  //
-  // Changed lines go on first so a line that is both keeps the vulnerable styling on top,
-  // and they take a much fainter tint — there are usually five times as many of them, and
-  // they must not compete with the two that matter once the answer is unlocked.
-  const changed = props.changedLines.map((line) => ({
-    range: { startLineNumber: line, startColumn: 1, endLineNumber: line, endColumn: 1 },
-    options: {
-      isWholeLine: true,
-      className: 'dd-changed-line',
-      linesDecorationsClassName: 'dd-changed-gutter',
-      hoverMessage: { value: 'Changed by the deploy in the brief.' },
-    },
-  }));
-
-  const vulnerable = props.highlightLines.map((line) => ({
-    range: { startLineNumber: line, startColumn: 1, endLineNumber: line, endColumn: 1 },
-    options: {
-      isWholeLine: true,
-      className: 'dd-vulnerable-line',
-      linesDecorationsClassName: 'dd-vulnerable-gutter',
-      hoverMessage: { value: 'Flagged during the investigation.' },
-    },
-  }));
-
   decorations ??= instance.createDecorationsCollection();
-  decorations.set([...changed, ...vulnerable]);
+  decorations.set(
+    props.highlightLines.map((line) => ({
+      range: { startLineNumber: line, startColumn: 1, endLineNumber: line, endColumn: 1 },
+      options: {
+        isWholeLine: true,
+        className: 'dd-vulnerable-line',
+        linesDecorationsClassName: 'dd-vulnerable-gutter',
+        hoverMessage: { value: 'Flagged during the investigation.' },
+      },
+    })),
+  );
 }
 
-function onMount(instance: Monaco.editor.IStandaloneCodeEditor) {
+/**
+ * Decorations belong to a model, not to an editor. Switching file swaps the model out
+ * from under the collection, which silently drops every mark — so rebuild them whenever
+ * the model changes rather than trusting a watch on the props to fire late enough.
+ */
+function track(instance: Monaco.editor.IStandaloneCodeEditor) {
+  modelListener?.dispose();
+  decorations = null;
   editor.value = instance;
+  modelListener = instance.onDidChangeModel(() => {
+    decorations = null;
+    applyHighlights();
+  });
   applyHighlights();
 }
 
-watch(() => [props.highlightLines, props.changedLines, props.path], applyHighlights, {
-  deep: true,
-});
+function onMount(instance: Monaco.editor.IStandaloneCodeEditor) {
+  track(instance);
+}
+
+function onDiffMount(instance: Monaco.editor.IStandaloneDiffEditor) {
+  track(instance.getModifiedEditor());
+}
+
+watch(() => [props.highlightLines, props.path], applyHighlights, { deep: true });
 
 onBeforeUnmount(() => {
+  modelListener?.dispose();
   decorations?.clear();
   decorations = null;
 });
@@ -95,9 +115,10 @@ onBeforeUnmount(() => {
     >
       <span class="truncate font-mono text-code-text">{{ path }}</span>
       <span class="flex shrink-0 items-center gap-3">
-        <span v-if="changedLines.length > 0" class="flex items-center gap-1.5 text-code-muted">
-          <span class="h-3 w-[3px] rounded-full bg-primary" aria-hidden="true" />
-          {{ changedLines.length }} changed in this deploy
+        <span v-if="isDiff" class="text-code-muted">
+          <span class="text-quality-good">+</span>
+          <span class="text-sev-critical">−</span>
+          changed in this deploy
         </span>
         <span v-if="highlightLines.length > 0" class="flex items-center gap-1.5 text-sev-critical">
           <span class="h-3 w-[3px] rounded-full bg-sev-critical" aria-hidden="true" />
@@ -107,7 +128,21 @@ onBeforeUnmount(() => {
     </header>
 
     <div class="h-[60vh] min-h-80">
+      <VueMonacoDiffEditor
+        v-if="isDiff"
+        :original="previousCode ?? ''"
+        :modified="code"
+        :language="language"
+        :original-model-path="`${path}~before`"
+        :modified-model-path="path"
+        theme="vs-dark"
+        :options="diffOptions"
+        width="100%"
+        height="100%"
+        @mount="onDiffMount"
+      />
       <VueMonacoEditor
+        v-else
         :value="code"
         :language="language"
         :path="path"
@@ -127,14 +162,6 @@ onBeforeUnmount(() => {
 }
 .dd-vulnerable-gutter {
   background-color: var(--dd-sev-critical);
-  width: 4px !important;
-  left: 4px !important;
-}
-.dd-changed-line {
-  background-color: color-mix(in srgb, var(--dd-primary) 10%, transparent);
-}
-.dd-changed-gutter {
-  background-color: var(--dd-primary);
   width: 4px !important;
   left: 4px !important;
 }

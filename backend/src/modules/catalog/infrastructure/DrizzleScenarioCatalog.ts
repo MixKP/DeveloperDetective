@@ -81,7 +81,7 @@ export class DrizzleScenarioCatalog implements ScenarioCatalog {
           code: files.code,
           language: files.language,
           recentlyChanged: files.recentlyChanged,
-          changedLines: files.changedLines,
+          previousCode: files.previousCode,
         })
         .from(files)
         .where(eq(files.scenarioId, scenarioId))

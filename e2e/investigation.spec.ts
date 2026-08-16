@@ -43,13 +43,18 @@ test.describe('the learner journey', () => {
 
     await expect(page.locator('.dd-vulnerable-line')).toHaveCount(0);
 
-    // The deploy markers are not part of the answer key, so they are on from the start:
-    // they narrow the hunt to the lines the incident touched without naming the defect.
-    await expect(page.locator('.dd-changed-gutter').first()).toBeVisible();
-    await expect(page.getByText('10 changed in this deploy')).toBeVisible();
+    // The diff is not part of the answer key, so it is on from the start: it narrows the
+    // hunt to what the incident deploy touched without naming the defect. Monaco marks
+    // removed lines with .line-delete and added ones with .line-insert.
+    await expect(page.locator('.line-delete').first()).toBeVisible();
+    await expect(page.locator('.line-insert').first()).toBeVisible();
 
     await expect(page.getByText('src/services/auth.service.ts', { exact: false })).toBeVisible();
     await expect(page.getByText('2 files changed in this deploy')).toBeVisible();
+
+    // An untouched file has no before, so it opens as a plain file with no diff at all.
+    await page.getByText('pool.ts', { exact: false }).click();
+    await expect(page.locator('.line-insert')).toHaveCount(0);
   });
 
   test('the debrief cannot be reached by deep-linking past the quiz', async ({ page }) => {

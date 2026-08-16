@@ -30,7 +30,7 @@ export const codeFileSchema = z.object({
   language: z.string(),
   code: z.string(),
   recentlyChanged: z.boolean(),
-  changedLines: z.array(z.number().int().positive()),
+  previousCode: z.string().nullable(),
   vulnerableLines: z.array(z.number().int().positive()),
 });
 export type CodeFile = z.infer<typeof codeFileSchema>;

@@ -46,7 +46,7 @@ export const files = pgTable(
     code: text('code').notNull(),
     language: text('language').notNull(),
     vulnerableLines: jsonb('vulnerable_lines').$type<number[]>().notNull().default([]),
-    changedLines: jsonb('changed_lines').$type<number[]>().notNull().default([]),
+    previousCode: text('previous_code'),
     recentlyChanged: boolean('recently_changed').notNull().default(false),
     orderIndex: integer('order_index').notNull().default(0),
   },

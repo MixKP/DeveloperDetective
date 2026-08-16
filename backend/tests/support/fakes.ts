@@ -114,7 +114,7 @@ const CONTENT: ScenarioContent = {
       language: 'typescript',
       code: 'const q = `SELECT * FROM users WHERE email = "${email}"`;',
       recentlyChanged: true,
-      changedLines: [1],
+      previousCode: 'const q = queryUser(email);',
     },
     {
       id: 2,
@@ -122,7 +122,7 @@ const CONTENT: ScenarioContent = {
       language: 'typescript',
       code: 'export const pool = createPool(config);',
       recentlyChanged: false,
-      changedLines: [],
+      previousCode: null,
     },
   ],
   questions: QUESTIONS,

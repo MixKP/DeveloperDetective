@@ -71,7 +71,7 @@ export class GetScenarioDetail {
         language: f.language,
         code: f.code,
         recentlyChanged: f.recentlyChanged,
-        changedLines: f.changedLines,
+        previousCode: f.previousCode,
         vulnerableLines: vulnerableLines[f.path] ?? [],
       })),
       questions,

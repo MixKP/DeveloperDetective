@@ -29,6 +29,20 @@
       "when": 1786877889131,
       "tag": "0003_early_blade",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1786880393392,
+      "tag": "0004_special_overlord",
+      "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1786880410718,
+      "tag": "0005_bright_hardball",
+      "breakpoints": true
     }
   ]
 }

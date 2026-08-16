@@ -47,7 +47,7 @@ function goToQuiz() {
         :language="activeFile.language"
         :path="activeFile.path"
         :highlight-lines="activeFile.vulnerableLines"
-        :changed-lines="activeFile.changedLines"
+        :previous-code="activeFile.previousCode"
       />
     </div>
 

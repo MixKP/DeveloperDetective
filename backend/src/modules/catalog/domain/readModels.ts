@@ -30,11 +30,11 @@ export interface FileContent {
   code: string;
   recentlyChanged: boolean;
   /**
-   * Lines the incident's deploy touched. Unlike vulnerableLines this is not part of
-   * the answer key — it says where to look, not what is wrong — so it ships with the
-   * file from the moment the learner opens the case.
+   * The file as it stood before the incident's deploy, or null if the deploy did not
+   * touch it. Unlike vulnerableLines this is not part of the answer key — a diff says
+   * where to look, not what is wrong — so it ships from the moment the case opens.
    */
-  changedLines: number[];
+  previousCode: string | null;
 }
 
 export interface QuestionContent {

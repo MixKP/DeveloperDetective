@@ -1,0 +1,1 @@
+ALTER TABLE "files" ADD COLUMN "previous_code" text;
