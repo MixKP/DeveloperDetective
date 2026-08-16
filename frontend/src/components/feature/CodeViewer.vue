@@ -25,6 +25,8 @@ const options: Monaco.editor.IStandaloneEditorConstructionOptions = {
   domReadOnly: true,
   minimap: { enabled: false },
   lineNumbers: 'on',
+  // Reserve room between the line numbers and the code for the marker bars.
+  lineDecorationsWidth: 12,
   scrollBeyondLastLine: false,
   fontSize: 13,
   automaticLayout: true,
@@ -40,14 +42,19 @@ function applyHighlights() {
   const instance = editor.value;
   if (!instance) return;
 
-  // Changed lines go on first so a line that is both keeps the vulnerable styling on
-  // top. They deliberately get a gutter bar and no line background: ten highlighted
-  // lines would drown out the two that matter once the answer is unlocked.
+  // Both markers use linesDecorations, not margin: a margin decoration lands on the far
+  // side of the line-number gutter, where it reads as an edge artifact rather than as a
+  // mark on the line. This zone sits directly against the code.
+  //
+  // Changed lines go on first so a line that is both keeps the vulnerable styling on top,
+  // and they take a much fainter tint — there are usually five times as many of them, and
+  // they must not compete with the two that matter once the answer is unlocked.
   const changed = props.changedLines.map((line) => ({
     range: { startLineNumber: line, startColumn: 1, endLineNumber: line, endColumn: 1 },
     options: {
       isWholeLine: true,
-      marginClassName: 'dd-changed-margin',
+      className: 'dd-changed-line',
+      linesDecorationsClassName: 'dd-changed-gutter',
       hoverMessage: { value: 'Changed by the deploy in the brief.' },
     },
   }));
@@ -57,7 +64,7 @@ function applyHighlights() {
     options: {
       isWholeLine: true,
       className: 'dd-vulnerable-line',
-      marginClassName: 'dd-vulnerable-margin',
+      linesDecorationsClassName: 'dd-vulnerable-gutter',
       hoverMessage: { value: 'Flagged during the investigation.' },
     },
   }));
@@ -118,14 +125,17 @@ onBeforeUnmount(() => {
 .dd-vulnerable-line {
   background-color: color-mix(in srgb, var(--dd-sev-critical) 18%, transparent);
 }
-.dd-vulnerable-margin {
+.dd-vulnerable-gutter {
   background-color: var(--dd-sev-critical);
-  width: 3px !important;
-  margin-left: 3px;
+  width: 4px !important;
+  left: 4px !important;
 }
-.dd-changed-margin {
+.dd-changed-line {
+  background-color: color-mix(in srgb, var(--dd-primary) 10%, transparent);
+}
+.dd-changed-gutter {
   background-color: var(--dd-primary);
-  width: 3px !important;
-  margin-left: 3px;
+  width: 4px !important;
+  left: 4px !important;
 }
 </style>

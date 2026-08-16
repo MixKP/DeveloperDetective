@@ -45,7 +45,7 @@ test.describe('the learner journey', () => {
 
     // The deploy markers are not part of the answer key, so they are on from the start:
     // they narrow the hunt to the lines the incident touched without naming the defect.
-    await expect(page.locator('.dd-changed-margin').first()).toBeVisible();
+    await expect(page.locator('.dd-changed-gutter').first()).toBeVisible();
     await expect(page.getByText('10 changed in this deploy')).toBeVisible();
 
     await expect(page.getByText('src/services/auth.service.ts', { exact: false })).toBeVisible();
