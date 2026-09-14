@@ -1,19 +1,25 @@
 import {
   apiErrorSchema,
   answerResponseSchema,
+  knowledgeTestResponseSchema,
   hintResponseSchema,
   progressResponseSchema,
   scenarioDetailResponseSchema,
   scenarioListResponseSchema,
+  submitAttemptResponseSchema,
   submitProgressResponseSchema,
   type AnswerResponse,
   type ErrorCode,
   type HintResponse,
+  type KnowledgeTestResponse,
   type ProgressResponse,
   type ScenarioDetailResponse,
   type ScenarioListResponse,
+  type SubmitAttemptRequest,
+  type SubmitAttemptResponse,
   type SubmitProgressRequest,
   type SubmitProgressResponse,
+  type TestVariant,
 } from '@dd/shared';
 import type { ZodType } from 'zod';
 import { getLearnerId } from '@/auth/learnerId';
@@ -110,4 +116,16 @@ export const api = {
     }),
 
   getProgress: (): Promise<ProgressResponse> => request('/progress', progressResponseSchema),
+
+  getKnowledgeTest: (variant: TestVariant): Promise<KnowledgeTestResponse> =>
+    request(`/tests/${variant}`, knowledgeTestResponseSchema),
+
+  submitAttempt: (
+    variant: TestVariant,
+    payload: SubmitAttemptRequest,
+  ): Promise<SubmitAttemptResponse> =>
+    request(`/tests/${variant}/attempt`, submitAttemptResponseSchema, {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    }),
 };

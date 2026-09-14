@@ -1,6 +1,8 @@
 import { drizzle } from 'drizzle-orm/postgres-js';
 import { migrate } from 'drizzle-orm/postgres-js/migrator';
 import postgres from 'postgres';
+import { testsDirectory } from '../../src/modules/assessment/content/index.js';
+import { importKnowledgeTests } from '../../src/modules/assessment/infrastructure/seed/import.js';
 import { scenariosDirectory } from '../../src/modules/catalog/content/index.js';
 import { importScenarios } from '../../src/modules/catalog/infrastructure/seed/import.js';
 import { migrationsFolder } from '../../src/platform/db/migrations.js';
@@ -36,6 +38,7 @@ export async function setup() {
 
   await migrate(db, { migrationsFolder });
   await importScenarios(db, scenariosDirectory);
+  await importKnowledgeTests(db, testsDirectory);
 
   await client.end();
 }

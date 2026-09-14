@@ -4,6 +4,7 @@ import { beforeEach, describe, expect, it } from 'vitest';
 import { createApiApp } from '../../src/composition.js';
 import { createTokenVerifier } from '../../src/platform/http/token.js';
 import {
+  assessmentDeps,
   InMemoryInvestigationRepository,
   LEARNER,
   LOCATE_Q,
@@ -27,6 +28,7 @@ beforeEach(() => {
     catalog: new StubCatalog(),
     answerKey: new StubAnswerKey(),
     investigations: new InMemoryInvestigationRepository(),
+    ...assessmentDeps(),
     pingDb: async () => true,
     verifyToken,
   });
@@ -74,6 +76,7 @@ describe('deployments without auth configured', () => {
       catalog: new StubCatalog(),
       answerKey: new StubAnswerKey(),
       investigations: new InMemoryInvestigationRepository(),
+      ...assessmentDeps(),
       pingDb: async () => true,
     });
 
@@ -85,6 +88,7 @@ describe('deployments without auth configured', () => {
       catalog: new StubCatalog(),
       answerKey: new StubAnswerKey(),
       investigations: new InMemoryInvestigationRepository(),
+      ...assessmentDeps(),
       pingDb: async () => true,
     });
 

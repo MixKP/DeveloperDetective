@@ -254,7 +254,7 @@
         {
           "id": "c",
           "text": "Ethics and law are the same rules expressed in different words.",
-          "feedback": "Confuses the three levels the Code distinguishes: law is the minimum enforceable rule, professional ethics are the duties expected of members of a profession, and personal morality is individual belief. A legal act can still be a professional failure."
+          "feedback": "Misreads Principle 6 (Profession), clause 6.06, which confuses the three levels the Code distinguishes: law is the minimum enforceable rule, professional ethics are the duties expected of members of a profession, and personal morality is individual belief. A legal act can still be a professional failure."
         },
         {
           "id": "d",
@@ -277,7 +277,7 @@
         },
         {
           "id": "b",
-          "text": "The public interest is paramount — Principle 2 obliges you to act in the client's interest only in ways consistent with the public interest.",
+          "text": "The safety of the users takes precedence; a client's interest is served only in ways that are consistent with it.",
           "feedback": "Correct. Principle 1 (Public), clause 1.01, and the qualifying wording of Principle 2. The precedence is written into the Code rather than left to circumstance."
         },
         {

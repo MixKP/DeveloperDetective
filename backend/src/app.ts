@@ -1,5 +1,6 @@
 import type { Express } from 'express';
 import { createApiApp } from './composition.js';
+import { createAssessmentAdapters } from './modules/assessment/index.js';
 import { createCatalogModule } from './modules/catalog/index.js';
 import { DrizzleInvestigationRepository } from './modules/investigation/infrastructure/DrizzleInvestigationRepository.js';
 import { createDb } from './platform/db/client.js';
@@ -16,11 +17,15 @@ export function createAppFromEnv(options: { maxConnections?: number } = {}): App
   const env = loadEnv();
   const { db, ping, close } = createDb(env.DATABASE_URL, options);
   const { catalog, answerKey } = createCatalogModule(db);
+  const { tests, testAnswerKey, attempts } = createAssessmentAdapters(db);
 
   const app = createApiApp({
     catalog,
     answerKey,
     investigations: new DrizzleInvestigationRepository(db),
+    tests,
+    testAnswerKey,
+    attempts,
     pingDb: ping,
     corsOrigins: env.corsOrigins,
     verifyToken: createTokenVerifier({

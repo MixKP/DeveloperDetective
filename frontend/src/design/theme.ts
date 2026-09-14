@@ -1,4 +1,4 @@
-import type { EthicalQuality, Severity, Stage } from '@dd/shared';
+import type { EthicalQuality, EthicsPrinciple, Severity, Stage } from '@dd/shared';
 
 export const severityStyles: Record<Severity, { text: string; bg: string; ring: string }> = {
   Critical: {
@@ -54,3 +54,19 @@ export const stageLabels: Record<Stage, string> = {
 export function stageReachable(target: Stage, quizComplete: boolean): boolean {
   return target !== 'debrief' || quizComplete;
 }
+
+/**
+ * The eight principles of the IEEE-CS/ACM Software Engineering Code of Ethics, in
+ * the Code's own order — the number is part of the label because the feedback text
+ * refers to principles by number.
+ */
+export const principleLabels: Record<EthicsPrinciple, string> = {
+  public: '1. Public',
+  'client-and-employer': '2. Client and Employer',
+  product: '3. Product',
+  judgement: '4. Judgement',
+  management: '5. Management',
+  profession: '6. Profession',
+  colleagues: '7. Colleagues',
+  self: '8. Self',
+};

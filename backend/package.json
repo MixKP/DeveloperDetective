@@ -14,8 +14,10 @@
     "lint": "eslint .",
     "db:generate": "drizzle-kit generate",
     "db:migrate": "tsx --env-file-if-exists=../.env src/platform/db/migrate.ts",
-    "db:seed": "tsx --env-file-if-exists=../.env src/modules/catalog/infrastructure/seed/run.ts",
-    "test:integration": "vitest run --config vitest.integration.config.ts"
+    "db:seed": "npm run db:seed:scenarios && npm run db:seed:tests",
+    "test:integration": "vitest run --config vitest.integration.config.ts",
+    "db:seed:scenarios": "tsx --env-file-if-exists=../.env src/modules/catalog/infrastructure/seed/run.ts",
+    "db:seed:tests": "tsx --env-file-if-exists=../.env src/modules/assessment/infrastructure/seed/run.ts"
   },
   "dependencies": {
     "@dd/shared": "*",

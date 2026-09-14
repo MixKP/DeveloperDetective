@@ -123,16 +123,20 @@ Express API
 Supabase PostgreSQL
 ```
 
-Two domain modules, not five:
+Three domain modules, not six:
 
 - **`catalog`** — scenario content, and custodian of the answer key. No HTTP routes.
 - **`investigation`** — the learner's run: grading, hints, scoring, reveal, the ethical
   decision. Owns every learner-facing endpoint, because every one of them is gated by run
   state.
+- **`assessment`** — the knowledge test: the post-test a learner sits once, and the record
+  of what they answered ([ADR 0009](docs/adr/0009-assessment-is-its-own-module.md)).
 
 `grading`, `progress` and `ethics` were folded into `investigation` because they mutate the
 same aggregate in the same operation. Splitting them would mean a distributed transaction
-inside a monolith.
+inside a monolith. `assessment` stayed out for the opposite reason: an attempt is a separate
+aggregate with its own lifecycle, belongs to a learner rather than to a case, and shares no
+transaction with a run.
 
 ### The boundaries are lint errors, not documentation
 
@@ -162,6 +166,7 @@ rule already said yes:
 | hint text                 | the learner has paid the score penalty for it |
 | the debrief               | every question is solved                      |
 | ethical quality + outcome | the learner has committed to a choice         |
+| post-test key + feedback  | the learner has submitted their one attempt   |
 
 `tests/api/answer-key.contract.test.ts` fails the build if any of it leaks, by field name
 _and_ by value.
@@ -169,7 +174,8 @@ _and_ by value.
 **The score cannot be set, only derived.** `Score` has a private constructor and only a
 `derive()` factory, so no code path exists that assigns one. `POST /api/progress` has no
 `score` field and its schema is `.strict()`, so a client-supplied score is **rejected**
-rather than silently ignored.
+rather than silently ignored. `TestScore` is built the same way, and
+`POST /api/tests/:variant/attempt` is `.strict()` for the same reason.
 
 **Signing in is required** ([ADR 0008](docs/adr/0008-accounts-are-required.md)). A route
 guard sends unauthenticated visits to `/auth`, and the API refuses anything but a verified
@@ -225,8 +231,8 @@ key committed to a public repository** (High).
 
 | Command                    | Does                                                                        |
 | -------------------------- | --------------------------------------------------------------------------- |
-| `npm test`                 | 122 tests — domain, application, API, content, stores. No database required |
-| `npm run test:integration` | 21 tests — Drizzle repositories and the seed against real PostgreSQL        |
+| `npm test`                 | 149 tests — domain, application, API, content, stores. No database required |
+| `npm run test:integration` | 26 tests — Drizzle repositories and the seed against real PostgreSQL        |
 | `npm run test:e2e`         | 10 tests — the full journey in a real browser (Playwright)                  |
 | `npm run test:all`         | All three levels                                                            |
 | `npm run typecheck`        | All three workspaces                                                        |
@@ -234,7 +240,7 @@ key committed to a public repository** (High).
 | `npm run format`           | Prettier                                                                    |
 | `npm run db:generate`      | Regenerate migrations after a schema change                                 |
 | `npm run db:migrate`       | Apply migrations (direct connection)                                        |
-| `npm run db:seed`          | Import scenario JSON (idempotent)                                           |
+| `npm run db:seed`          | Import scenario and knowledge-test JSON (idempotent)                        |
 | `npx supabase start`       | Start the local Supabase stack                                              |
 | `npx supabase stop`        | Stop it (`--no-backup` to discard the local data)                           |
 

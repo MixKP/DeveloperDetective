@@ -1,0 +1,62 @@
+import { defineStore } from 'pinia';
+import { computed, ref } from 'vue';
+import type { AttemptResult, KnowledgeTestResponse } from '@dd/shared';
+import { api, ApiError } from '@/api/client';
+
+export const useKnowledgeTestStore = defineStore('knowledgeTest', () => {
+  const test = ref<KnowledgeTestResponse | null>(null);
+  const loading = ref(false);
+  const submitting = ref(false);
+  const error = ref<string | null>(null);
+
+  const attempt = computed<AttemptResult | null>(() => test.value?.attempt ?? null);
+  const taken = computed(() => attempt.value !== null);
+
+  async function fetch(force = false) {
+    if (!force && test.value) return;
+    loading.value = true;
+    error.value = null;
+    try {
+      test.value = await api.getKnowledgeTest('post');
+    } catch (e) {
+      error.value = e instanceof ApiError ? e.message : 'Could not load the knowledge check.';
+    } finally {
+      loading.value = false;
+    }
+  }
+
+  async function submit(answers: Record<number, string>) {
+    const current = test.value;
+    if (!current) return;
+
+    submitting.value = true;
+    error.value = null;
+    try {
+      const result = await api.submitAttempt('post', {
+        responses: current.questions.map((question) => ({
+          questionId: question.id,
+          optionId: answers[question.id] ?? '',
+        })),
+      });
+      current.attempt = result.attempt;
+    } catch (e) {
+      const message = e instanceof ApiError ? e.message : 'Could not record your answers.';
+      // A refused submission usually means another tab already recorded one, so the
+      // authoritative attempt is on the server rather than in this tab's state. The
+      // message is set after that refetch, which clears the error on its way in.
+      if (e instanceof ApiError && e.code === 'RULE_VIOLATION') await fetch(true);
+      error.value = message;
+      throw e;
+    } finally {
+      submitting.value = false;
+    }
+  }
+
+  /** The attempt belongs to a learner, not to the browser. */
+  function reset() {
+    test.value = null;
+    error.value = null;
+  }
+
+  return { test, attempt, taken, loading, submitting, error, fetch, submit, reset };
+});

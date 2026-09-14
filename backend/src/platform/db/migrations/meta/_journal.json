@@ -43,6 +43,13 @@
       "when": 1786880410718,
       "tag": "0005_bright_hardball",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1789399306059,
+      "tag": "0006_noisy_dazzler",
+      "breakpoints": true
     }
   ]
 }

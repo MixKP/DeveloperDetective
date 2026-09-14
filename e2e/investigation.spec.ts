@@ -107,6 +107,8 @@ test.describe('the learner journey', () => {
     await expect(page.getByText('Final score').locator('..')).toContainText('75');
 
     await expect(page.getByText('The call is yours')).toBeVisible();
+    // The questions would telegraph which decision the platform considers defensible.
+    await expect(page.getByText('Knowledge check')).toHaveCount(0);
     const consequence = 'incident review named the escalation';
     await expect(page.getByText(consequence)).toHaveCount(0);
     await expect(page.getByText('Defensible call')).toHaveCount(0);
@@ -118,6 +120,30 @@ test.describe('the learner journey', () => {
     await expect(page.getByText(consequence)).toBeVisible();
 
     await expect(page.getByRole('button', { name: 'Commit to this decision' })).toHaveCount(0);
+
+    // The knowledge check is the last thing on the page, and only after the call.
+    const check = page.locator('section').filter({ hasText: 'Knowledge check' });
+    await expect(check).toBeVisible();
+    await check.getByRole('button', { name: 'Start the knowledge check' }).click();
+
+    const items = check.locator('ol > li');
+    await expect(items).toHaveCount(10);
+
+    for (let i = 0; i < 10; i += 1) {
+      await items.nth(i).getByRole('radio').first().check();
+    }
+    await expect(check.getByText('10 of 10 answered')).toBeVisible();
+
+    await check.getByRole('button', { name: 'Submit the knowledge check' }).click();
+
+    await expect(check.getByText('Your result')).toBeVisible();
+    await expect(check.getByText(/clause \d/).first()).toBeVisible();
+    await expect(check.getByRole('button', { name: 'Submit the knowledge check' })).toHaveCount(0);
+
+    // One sitting: a reload replays the recorded attempt rather than reopening it.
+    await page.reload();
+    await expect(check.getByText('Your result')).toBeVisible();
+    await expect(check.getByRole('button', { name: 'Start the knowledge check' })).toHaveCount(0);
 
     await page.getByRole('button', { name: 'Back to open cases' }).click();
     await expect(page.getByText('Cases solved').locator('..')).toContainText('1');

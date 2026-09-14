@@ -5,6 +5,7 @@ import { Fingerprint } from 'lucide-vue-next';
 import BaseButton from '@/components/ui/BaseButton.vue';
 import ThemeToggle from '@/components/ui/ThemeToggle.vue';
 import { useAuthStore } from '@/stores/auth';
+import { useKnowledgeTestStore } from '@/stores/knowledgeTest';
 import { useProgressStore } from '@/stores/progress';
 import { useScenariosStore } from '@/stores/scenarios';
 
@@ -12,6 +13,7 @@ const router = useRouter();
 const auth = useAuthStore();
 const scenarios = useScenariosStore();
 const progress = useProgressStore();
+const knowledgeTest = useKnowledgeTestStore();
 
 // Signing in or out swaps the learner id, so everything already fetched belongs to
 // somebody else. Drop it, then move: signing out has to leave the app, because the
@@ -25,6 +27,7 @@ watch(
     scenarios.current = null;
     scenarios.list = [];
     progress.reset();
+    knowledgeTest.reset();
 
     // `void` starts these but does not catch them. `progress.fetch` rethrows so its
     // callers can react, and a router push rejects whenever a guard redirects

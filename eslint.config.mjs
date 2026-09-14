@@ -4,7 +4,7 @@ import vue from 'eslint-plugin-vue';
 import prettier from 'eslint-config-prettier';
 import globals from 'globals';
 
-const MODULES = ['catalog', 'investigation'];
+const MODULES = ['assessment', 'catalog', 'investigation'];
 
 const LAYERS = ['domain', 'application', 'interface', 'infrastructure'];
 

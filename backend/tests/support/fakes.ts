@@ -8,6 +8,16 @@ import type {
   ScenarioContent,
   ScenarioSummaryContent,
 } from '../../src/modules/catalog/index.js';
+import type {
+  Attempt,
+  AttemptRepository,
+  GradedAnswerContent,
+  KnowledgeTestCatalog,
+  KnowledgeTestContent,
+  SelectedOption,
+  TestAnswerKey,
+  TestVariant,
+} from '../../src/modules/assessment/index.js';
 import type { Investigation } from '../../src/modules/investigation/domain/Investigation.js';
 import type { InvestigationRepository } from '../../src/modules/investigation/application/ports.js';
 
@@ -218,3 +228,116 @@ export class InMemoryInvestigationRepository implements InvestigationRepository 
     return [...this.rows.values()].filter((r) => r.learnerId === learnerId);
   }
 }
+
+export const TEST_ID = 9;
+export const TEST_Q1 = 901;
+export const TEST_Q2 = 902;
+
+const TEST_KEY: Record<
+  number,
+  {
+    correctOption: string;
+    principle: GradedAnswerContent['principle'];
+    clause: string;
+    explanation: string;
+    options: { id: string; text: string; feedback: string }[];
+  }
+> = {
+  [TEST_Q1]: {
+    correctOption: 'b',
+    principle: 'public',
+    clause: '1.04',
+    explanation: 'Disclosure comes before the fix.',
+    options: [
+      {
+        id: 'a',
+        text: 'Wait for the announcement.',
+        feedback: 'Breaches Principle 1, clause 1.04.',
+      },
+      { id: 'b', text: 'Disclose it immediately.', feedback: 'Correct. Principle 1, clause 1.04.' },
+    ],
+  },
+  [TEST_Q2]: {
+    correctOption: 'a',
+    principle: 'product',
+    clause: '3.10',
+    explanation: 'Rotation does not undo the harm already done.',
+    options: [
+      {
+        id: 'a',
+        text: 'Assess what was accessed.',
+        feedback: 'Correct. Principle 3, clause 3.10.',
+      },
+      { id: 'b', text: 'Close the ticket.', feedback: 'Breaches Principle 3, clause 3.10.' },
+    ],
+  },
+};
+
+const KNOWLEDGE_TEST: KnowledgeTestContent = {
+  id: TEST_ID,
+  slug: 'core-professional-ethics',
+  variant: 'post',
+  title: 'Core professional ethics',
+  description: 'Two questions, submitted once.',
+  questions: [TEST_Q1, TEST_Q2].map((id, index) => ({
+    id,
+    prompt: TEST_KEY[id]!.explanation,
+    orderIndex: index,
+    options: TEST_KEY[id]!.options.map((o) => ({ id: o.id, text: o.text })),
+  })),
+};
+
+export class StubKnowledgeTestCatalog implements KnowledgeTestCatalog {
+  async findByVariant(variant: TestVariant): Promise<KnowledgeTestContent | null> {
+    return variant === 'post' ? KNOWLEDGE_TEST : null;
+  }
+}
+
+export class StubTestAnswerKey implements TestAnswerKey {
+  async grade(testId: number, selections: SelectedOption[]): Promise<GradedAnswerContent[]> {
+    if (testId !== TEST_ID) return [];
+    return selections.flatMap((selection) => {
+      const entry = TEST_KEY[selection.questionId];
+      if (!entry) return [];
+      const chosen = entry.options.find((o) => o.id === selection.optionId);
+      return [
+        {
+          questionId: selection.questionId,
+          selectedOption: selection.optionId,
+          correctOption: entry.correctOption,
+          correct: entry.correctOption === selection.optionId,
+          principle: entry.principle,
+          clause: entry.clause,
+          feedback: chosen?.feedback ?? 'No option was selected for this question.',
+          explanation: entry.explanation,
+        },
+      ];
+    });
+  }
+}
+
+export class InMemoryAttemptRepository implements AttemptRepository {
+  private readonly rows = new Map<string, Attempt>();
+
+  private key(learnerId: string, testId: number) {
+    return `${learnerId}:${testId}`;
+  }
+
+  async find(learnerId: string, testId: number): Promise<Attempt | null> {
+    return this.rows.get(this.key(learnerId, testId)) ?? null;
+  }
+
+  async save(attempt: Attempt): Promise<void> {
+    this.rows.set(this.key(attempt.learnerId, attempt.testId), attempt);
+  }
+}
+
+/**
+ * The assessment half of `ApiDeps`. Spread into `createApiApp` by every API test,
+ * so a test about investigation endpoints does not have to care about this module.
+ */
+export const assessmentDeps = () => ({
+  tests: new StubKnowledgeTestCatalog(),
+  testAnswerKey: new StubTestAnswerKey(),
+  attempts: new InMemoryAttemptRepository(),
+});

@@ -3,6 +3,7 @@ import request from 'supertest';
 import { beforeEach, describe, expect, it } from 'vitest';
 import { createApiApp } from '../../src/composition.js';
 import {
+  assessmentDeps,
   GOOD_CHOICE,
   InMemoryInvestigationRepository,
   LEARNER,
@@ -39,6 +40,7 @@ beforeEach(() => {
     catalog: new StubCatalog(),
     answerKey: new StubAnswerKey(),
     investigations: new InMemoryInvestigationRepository(),
+    ...assessmentDeps(),
     pingDb: async () => true,
   });
 });
