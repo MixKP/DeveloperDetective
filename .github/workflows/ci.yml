@@ -136,6 +136,10 @@ jobs:
           target: api
           tags: dd-api:ci
           load: true
+          pull: true
+          # The apk upgrade layer would otherwise be served from the cache below,
+          # frozen at whatever Alpine shipped the day it was first built.
+          build-args: APK_SNAPSHOT=${{ github.run_id }}
           cache-from: type=gha,scope=api
           cache-to: type=gha,mode=max,scope=api
 
@@ -147,6 +151,8 @@ jobs:
           target: web
           tags: dd-web:ci
           load: true
+          pull: true
+          build-args: APK_SNAPSHOT=${{ github.run_id }}
           cache-from: type=gha,scope=web
           cache-to: type=gha,mode=max,scope=web
 

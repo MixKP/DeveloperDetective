@@ -4,6 +4,11 @@ services:
       context: .
       dockerfile: Dockerfile
       target: api
+      args:
+        # Busts the apk upgrade layer so a rebuild actually re-reads Alpine's index.
+        # `APK_SNAPSHOT=$(date +%F) docker compose build` patches; without it a
+        # cached layer can hand you last month's packages.
+        APK_SNAPSHOT: ${APK_SNAPSHOT:-dev}
     env_file: .env
     environment:
       NODE_ENV: production
@@ -29,6 +34,7 @@ services:
       dockerfile: Dockerfile
       target: web
       args:
+        APK_SNAPSHOT: ${APK_SNAPSHOT:-dev}
         VITE_SUPABASE_URL: ${VITE_SUPABASE_URL:-}
         VITE_SUPABASE_ANON_KEY: ${VITE_SUPABASE_ANON_KEY:-}
     ports:

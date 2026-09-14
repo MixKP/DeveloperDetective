@@ -52,13 +52,21 @@ RUN npm ci --omit=dev --ignore-scripts \
 
 # Editor scanners flag this line with node:22-alpine's own findings (1 critical,
 # 7 high — all inside the npm that ships bundled in the base). They read the tag,
-# not the image we build: the layer below deletes npm, and a scan of the built
-# image reports zero. No official Node base is cleaner — 24-alpine adds an undici
-# finding, the slim variants carry ~24 Debian ones, and distroless trades npm's
-# unreachable tar for a libssl3 that is genuinely linked into the runtime.
+# not the image we build: the two layers below delete npm and patch the base
+# packages, and a scan of the built image reports zero. No official Node base is
+# cleaner — 24-alpine adds an undici finding, the slim variants carry ~24 Debian
+# ones, and distroless trades npm's unreachable tar for a libssl3 that is genuinely
+# linked into the runtime.
 FROM node:22-alpine AS api
 WORKDIR /app
 ENV NODE_ENV=production
+
+# Same reason as the web stage: the base image lags Alpine's package index, so
+# patched openssl lands here before the next node tag ships it. Node bundles its own
+# OpenSSL and does not link libcrypto3, so the finding is unreachable from the app —
+# but it is still in the image, and an unreachable CVE still has to be answered for.
+ARG APK_SNAPSHOT=dev
+RUN echo "apk snapshot $APK_SNAPSHOT" && apk --no-cache upgrade
 
 # npm is a build-time tool. Leaving it in the runtime image ships its whole bundled
 # dependency tree — tar, sigstore, brace-expansion and friends — as scanner findings
@@ -73,11 +81,13 @@ COPY --from=api-runtime-deps /app/node_modules node_modules
 COPY --from=api-build /app/shared/dist shared/dist
 COPY --from=api-build /app/backend/dist backend/dist
 
-# Data the build does not emit: SQL migrations and authored scenario JSON, each
+# Data the build does not emit: SQL migrations and authored content JSON, each
 # copied to the path its resolver expects to find beside the compiled module.
 COPY backend/src/platform/db/migrations backend/dist/platform/db/migrations
 COPY backend/src/modules/catalog/content/scenarios \
   backend/dist/modules/catalog/content/scenarios
+COPY backend/src/modules/assessment/content/tests \
+  backend/dist/modules/assessment/content/tests
 
 USER node
 
@@ -88,7 +98,15 @@ FROM nginx:1.29-alpine AS web
 
 # The base image lags Alpine's package index, so patched openssl/curl/expat land
 # here before the next nginx tag ships them. Costs a layer; removes the CVE backlog.
-RUN apk --no-cache upgrade
+#
+# `apk --no-cache` is about apk's index cache, not Docker's layer cache, and this
+# command's text never changes — so a cached layer keeps reporting success while the
+# Alpine index moves on, and a CVE that was patched reappears in an image the
+# Dockerfile still claims to patch. That is not hypothetical: it is how
+# CVE-2026-14456 came back here. APK_SNAPSHOT is passed per build so this one layer
+# is rebuilt, and the expensive stages above it are not.
+ARG APK_SNAPSHOT=dev
+RUN echo "apk snapshot $APK_SNAPSHOT" && apk --no-cache upgrade
 
 COPY frontend/nginx.conf /etc/nginx/conf.d/default.conf
 COPY --from=web-build /app/frontend/dist /usr/share/nginx/html

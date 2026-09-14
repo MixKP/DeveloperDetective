@@ -25,6 +25,12 @@ docker compose up --build
 The app is then at **http://localhost:8080**, and Supabase Studio at
 **http://localhost:54323**.
 
+> Both images patch their Alpine packages at build time, and that layer caches like any
+> other — the command text never changes, so a rebuild can hand you the packages Alpine
+> shipped the day the layer was first built. Pass a value that changes to rebuild it:
+> `APK_SNAPSHOT=$(date +%F) docker compose build --pull`. CI passes the run id, so its
+> images are always freshly patched before Trivy scans them.
+
 ### Local development without Docker
 
 ```bash
