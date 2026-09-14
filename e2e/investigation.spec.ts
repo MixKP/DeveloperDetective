@@ -17,15 +17,37 @@ async function openSqlCase(page: Page) {
 }
 
 test.describe('the learner journey', () => {
-  test('dashboard lists both seeded cases with no progress', async ({ page }) => {
+  test('dashboard lists every seeded case with no progress', async ({ page }) => {
     await page.goto('/');
 
     await expect(page.getByRole('heading', { name: 'Open cases' })).toBeVisible();
-    await expect(page.getByRole('article')).toHaveCount(2);
+    await expect(page.getByRole('article')).toHaveCount(7);
     await expect(page.getByText(SQL_CASE)).toBeVisible();
-    await expect(page.getByText('Critical')).toBeVisible();
+    // Three of the seven are Critical, so this has to count rather than match one.
+    await expect(page.getByText('Critical')).toHaveCount(3);
 
     await expect(page.getByText('Cases solved').locator('..')).toContainText('0');
+  });
+
+  test('every seeded case opens, briefs, and renders its repository', async ({ page }) => {
+    await page.goto('/');
+    const cards = page.getByRole('article');
+    // count() does not auto-wait, so settle the list before reading its length.
+    await expect(cards).toHaveCount(7);
+    const total = await cards.count();
+
+    for (let i = 0; i < total; i += 1) {
+      await page.goto('/');
+      await cards.nth(i).getByRole('button').click();
+      await expect(page).toHaveURL(/\/cases\/\d+\/brief/);
+      await expect(page.getByText('Your objectives')).toBeVisible();
+
+      await page.getByRole('button', { name: 'Open the repository' }).click();
+      await expect(page).toHaveURL(/\/investigate/);
+      // Monaco mounted and painted a line: the content of this case actually renders.
+      await expect(page.locator('.view-lines').first()).toBeVisible();
+      await expect(page.locator('.dd-vulnerable-line')).toHaveCount(0);
+    }
   });
 
   test('the brief frames the learner as the engineer, not the attacker', async ({ page }) => {

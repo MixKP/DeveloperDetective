@@ -45,7 +45,7 @@ afterAll(async () => {
 describe('DrizzleScenarioCatalog', () => {
   it('lists the seeded scenarios with their question counts', async () => {
     const summaries = await catalog.listSummaries();
-    expect(summaries).toHaveLength(2);
+    expect(summaries).toHaveLength(7);
     for (const summary of summaries) {
       expect(summary.questionCount).toBe(3);
     }

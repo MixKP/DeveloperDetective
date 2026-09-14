@@ -10,11 +10,13 @@ test('register, land on the dashboard signed in, sign out, sign back in', async 
 
   await page.goto('/auth');
 
-  // Builds without Supabase credentials have no gate and no account flow (ADR 0008).
+  // The heading renders in both configurations, so it is the point at which the view
+  // has settled. Reading the notice before that reports "not visible" either way, and
+  // the test then runs against a build with no account flow at all (ADR 0008).
+  await expect(page.getByRole('heading', { name: 'Sign in' })).toBeVisible();
+
   const unavailable = page.getByText('This build has no Supabase credentials');
   test.skip(await unavailable.isVisible(), 'auth is not configured for this build');
-
-  await expect(page.getByRole('heading', { name: 'Sign in' })).toBeVisible();
 
   await page.getByRole('button', { name: 'Create one' }).click();
   await expect(page.getByRole('heading', { name: 'Create an account' })).toBeVisible();

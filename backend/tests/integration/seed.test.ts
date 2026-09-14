@@ -43,8 +43,8 @@ afterAll(async () => {
 });
 
 describe('scenario import', () => {
-  it('seeded the two authored scenarios', async () => {
-    expect(await counts()).toEqual({ scenarios: 2, files: 8, questions: 6, choices: 6 });
+  it('seeded every authored scenario', async () => {
+    expect(await counts()).toEqual({ scenarios: 7, files: 23, questions: 21, choices: 21 });
   });
 
   it('is idempotent: re-importing changes no counts', async () => {

@@ -1,0 +1,166 @@
+{
+  "slug": "ssrf-link-preview",
+  "title": "The link preview service will fetch anything you give it",
+  "summary": "An allowlist was removed so one customer could preview their intranet pages.",
+  "severity": "High",
+  "tags": [
+    "ssrf",
+    "server-side-request-forgery",
+    "owasp-a10"
+  ],
+  "estimatedMinutes": 30,
+  "language": "typescript",
+  "brief": {
+    "sender": "Grace Abara",
+    "senderRole": "Staff Engineer, Platform",
+    "subject": "Odd egress from the preview pods",
+    "receivedAt": "2026-09-09T10:45:00.000Z",
+    "body": "Morning,\n\nOur egress dashboard has the preview pods making requests to 169.254.169.254. That address is the instance metadata service. It is not somewhere application code has any business going, and it is not somewhere I can reach from my laptop, which is rather the point of it.\n\nThe requests correlate with traffic to /previews. Whoever is doing it is signed in, so it is a customer or someone using a customer account.\n\nI know the allowlist on that route came out a few weeks ago for Northwind, because they wanted previews of their own intranet links. I was not in that conversation.\n\nBefore anyone suggests putting the allowlist back exactly as it was: I would like whoever looks at this to be sure that would actually have stopped it.\n\nGrace",
+    "objectives": [
+      "Find what decides which addresses the server will fetch on a user’s behalf",
+      "Work out what is reachable from the server that is not reachable from a browser",
+      "Decide on a fix, knowing a paying customer depends on the behaviour that caused this"
+    ]
+  },
+  "debrief": {
+    "rootCause": "The preview service fetches whatever URL it is handed and follows redirects while doing it. The route in front of it checks only that the string begins with `http://` or `https://`, which says nothing about where the request will land. An allowlist of hostnames used to sit on that route and was removed so one customer could preview internal pages; the list is still in the config, read by nothing.",
+    "businessImpact": "The request is made by the server, from inside the cluster, so it reaches addresses that no browser could: the instance metadata service on 169.254.169.254, which hands out the cloud role credentials the pod runs as, and the internal admin service that was never built to face anyone. Metadata credentials are the escalation that matters — they are not scoped to previews, they are scoped to whatever the instance role can do. Because the response comes back through a feature that is supposed to fetch remote pages, nothing about the traffic looks anomalous inside the application.",
+    "remediation": "Decide where the server may connect, not what the string looks like: resolve the hostname and reject loopback, link-local and private ranges, and re-apply that check on every redirect hop rather than only on the URL first submitted. The durable version of this is an egress proxy that the preview pods must route through, so the policy lives in one place instead of in each caller. For the customer’s intranet previews, the honest answer is that a service on the public internet cannot safely fetch their private network, and the feature has to move to something running inside it."
+  },
+  "files": [
+    {
+      "path": "src/services/preview.service.ts",
+      "language": "typescript",
+      "code": "import { parseOpenGraph } from './openGraph';\nimport { networkConfig } from '../config/network';\n\nexport interface Preview {\n  title: string;\n  description: string;\n  image: string | null;\n}\n\nexport async function fetchPreview(target: string): Promise<Preview> {\n  const response = await fetch(target, {\n    redirect: 'follow',\n    signal: AbortSignal.timeout(networkConfig.previewTimeoutMs),\n  });\n\n  const html = await response.text();\n  return parseOpenGraph(html);\n}\n",
+      "vulnerableLines": [
+        11,
+        12
+      ],
+      "previousCode": null,
+      "recentlyChanged": false
+    },
+    {
+      "path": "src/routes/preview.routes.ts",
+      "language": "typescript",
+      "code": "import { Router } from 'express';\nimport { requireAuth } from '../middleware/requireAuth';\nimport { fetchPreview } from '../services/preview.service';\n\nexport const previewRouter = Router();\n\npreviewRouter.post('/previews', requireAuth, async (req, res) => {\n  const url = String(req.body?.url ?? '');\n\n  if (!url.startsWith('http://') && !url.startsWith('https://')) {\n    return res.status(400).json({ error: 'A preview needs an http or https URL' });\n  }\n\n  const preview = await fetchPreview(url);\n  return res.json({ preview });\n});\n",
+      "vulnerableLines": [
+        10
+      ],
+      "previousCode": "import { Router } from 'express';\nimport { requireAuth } from '../middleware/requireAuth';\nimport { fetchPreview } from '../services/preview.service';\nimport { networkConfig } from '../config/network';\n\nexport const previewRouter = Router();\n\npreviewRouter.post('/previews', requireAuth, async (req, res) => {\n  const url = String(req.body?.url ?? '');\n\n  let parsed: URL;\n  try {\n    parsed = new URL(url);\n  } catch {\n    return res.status(400).json({ error: 'A preview needs an http or https URL' });\n  }\n\n  if (!networkConfig.previewAllowlist.includes(parsed.hostname)) {\n    return res.status(400).json({ error: 'That domain is not supported for previews' });\n  }\n\n  const preview = await fetchPreview(url);\n  return res.json({ preview });\n});\n",
+      "recentlyChanged": true
+    },
+    {
+      "path": "src/config/network.ts",
+      "language": "typescript",
+      "code": "export const networkConfig = {\n  previewTimeoutMs: 4000,\n\n  // Kept for the allowlist the preview route used to check against. Nothing\n  // reads it since the Northwind change.\n  previewAllowlist: ['docs.google.com', 'www.notion.so', 'github.com'],\n\n  // The API runs on managed instances. Both of these are reachable from the\n  // pod and from nowhere on the public internet.\n  instanceMetadata: 'http://169.254.169.254/latest/meta-data/',\n  internalAdmin: 'http://admin.internal.svc.cluster.local:8080/',\n};\n",
+      "vulnerableLines": [],
+      "previousCode": null,
+      "recentlyChanged": false
+    }
+  ],
+  "questions": [
+    {
+      "kind": "locate",
+      "prompt": "Which lines decide where the server is willing to connect?",
+      "options": [
+        {
+          "id": "a",
+          "text": "network.ts lines 10-11 — the metadata and admin addresses are written down in the configuration"
+        },
+        {
+          "id": "b",
+          "text": "preview.service.ts lines 11-12 and preview.routes.ts line 10 — the target is fetched as given, redirects are followed, and the only check is the URL scheme"
+        },
+        {
+          "id": "c",
+          "text": "preview.service.ts line 13 — the four-second timeout is long enough for an internal request to complete"
+        },
+        {
+          "id": "d",
+          "text": "preview.routes.ts line 8 — the URL is coerced with String() rather than parsed with new URL()"
+        }
+      ],
+      "correctOption": "b",
+      "explanation": "Line 10 of the route is the entire gate: a string that starts with `http://` passes, and `http://169.254.169.254/` starts with `http://`. Lines 11 and 12 of the service then fetch it and follow wherever it redirects. The addresses in network.ts are documentation of what exists on the network, not the defect — removing them from the file would change nothing about what is reachable.",
+      "hints": [
+        "Find every line between the request arriving and the fetch going out that could say no.",
+        "Read the one check that exists and ask what it actually rules out.",
+        "The service adds a second problem of its own, on the line after the fetch begins."
+      ]
+    },
+    {
+      "kind": "explain",
+      "prompt": "A user submits `http://169.254.169.254/latest/meta-data/iam/security-credentials/`. Why does this work, when the same URL in their browser would not?",
+      "options": [
+        {
+          "id": "a",
+          "text": "The browser’s same-origin policy blocks it, and the server has no same-origin policy"
+        },
+        {
+          "id": "b",
+          "text": "The fetch is made by the server from inside the cluster, so it reaches a link-local address the user’s own machine has no route to — and it returns the pod’s cloud credentials"
+        },
+        {
+          "id": "c",
+          "text": "Node’s fetch ignores the system proxy configuration, so the request bypasses the egress rules that would otherwise stop it"
+        },
+        {
+          "id": "d",
+          "text": "The metadata service trusts any request carrying an Authorization header, and requireAuth has already attached one"
+        }
+      ],
+      "correctOption": "b",
+      "explanation": "The user is not making the request — they are choosing the destination of a request the server makes, from a position on the network they do not have. That is the whole of server-side request forgery. Same-origin policy is a browser rule about reading responses across origins and has nothing to do with what a server may connect to; citing it is the common way this gets waved away in review. What comes back is not a web page but the instance role’s credentials, which are scoped to the instance rather than to previews.",
+      "hints": [
+        "Ask who actually opens the TCP connection, and where that machine sits.",
+        "The user supplies a destination, not a request. What does that get them that they did not already have?"
+      ]
+    },
+    {
+      "kind": "solve",
+      "prompt": "Grace asked whether restoring the old allowlist would have stopped this. What is the fix?",
+      "options": [
+        {
+          "id": "a",
+          "text": "Restore the hostname allowlist on the route — it was removed, and putting it back returns the service to its previous safe state"
+        },
+        {
+          "id": "b",
+          "text": "Block any URL whose host is 169.254.169.254, 127.0.0.1 or localhost before fetching"
+        },
+        {
+          "id": "c",
+          "text": "Resolve the host and reject loopback, link-local and private ranges — on the first request and on every redirect hop — and route preview egress through a proxy that enforces it in one place"
+        },
+        {
+          "id": "d",
+          "text": "Set redirect: \"manual\" so redirects are not followed, which removes the path to the internal address"
+        }
+      ],
+      "correctOption": "c",
+      "explanation": "The allowlist alone answers Grace’s question with a no: it is checked before the fetch, and an allowlisted host is free to answer with a 302 to a link-local address that the service then follows. That is also why option D is only half of it — refusing redirects closes one route while a hostname that simply resolves to 169.254.169.254 walks in the front. Option B is a denylist of three strings against an address space, and loses to decimal notation, to IPv6, and to DNS. Checking the resolved address on every hop is the check that matches what is actually being decided, and putting it in an egress proxy means the next feature that fetches a URL inherits it.",
+      "hints": [
+        "Take the allowlist seriously for a moment: an allowed domain responds with a redirect. Now what?",
+        "Every option here checks something. Compare what each one checks against what actually determines where the packet goes.",
+        "Where would this check have to live so that the next feature to fetch a URL does not have to remember it?"
+      ]
+    }
+  ],
+  "ethicalChoices": [
+    {
+      "text": "Ship the egress restriction now, revoke and rotate the instance credentials, and tell Northwind that intranet previews are going away with the reason stated — despite sales asking for a per-account bypass to keep the integration alive.",
+      "quality": "good",
+      "outcome": "The credentials were rotated inside the day; the audit trail showed the metadata endpoint had been hit eleven times from one account, all in a ten-minute window three weeks ago, and nothing had used the credentials since. Northwind’s integration broke and their operations lead was blunt about it on the next call. Their security team, copied on the same email, asked for the detail and then asked why it had ever worked — and ended up raising the same pattern against two of their other vendors."
+    },
+    {
+      "text": "Ship the fix with a per-account bypass flag so Northwind keeps working, documented in the config as a legacy allowance to be removed later.",
+      "quality": "bad",
+      "outcome": "Everyone else was protected and the renewal went smoothly. The flag was never removed, because removing it meant the conversation the flag existed to avoid. Seven months later a support engineer enabled it for a second account who asked for \"what Northwind has\", by then with no memory of what it did. The eventual incident report described a security control with a customer-configurable off switch, and noted it had been designed that way rather than left that way by accident."
+    },
+    {
+      "text": "Ship the egress restriction for everyone, turn previews off for Northwind, and let account management tell them it is a temporary platform limitation.",
+      "quality": "neutral",
+      "outcome": "The platform was safe and Northwind lost the feature without being told it had been a hole in the vendor’s network. \"Temporary\" bought a quiet quarter and then a second conversation when they asked for a date. Nobody was harmed and nobody was lied to in so many words, but the customer’s own security team never got the one piece of information that might have been useful to them — that a product they had integrated deeply had been fetching arbitrary URLs from inside a cluster on their instruction."
+    }
+  ]
+}

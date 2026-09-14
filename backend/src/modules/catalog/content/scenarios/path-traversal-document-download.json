@@ -1,0 +1,164 @@
+{
+  "slug": "path-traversal-document-download",
+  "title": "The download endpoint serves any file on the disk",
+  "summary": "A customer asked for downloads by filename, and the quickest thing that worked was shipped.",
+  "severity": "Critical",
+  "tags": [
+    "path-traversal",
+    "file-disclosure",
+    "owasp-a01"
+  ],
+  "estimatedMinutes": 25,
+  "language": "typescript",
+  "brief": {
+    "sender": "Aisha Kowalski",
+    "senderRole": "Platform Security Engineer",
+    "subject": "documents/download — please look before the weekend",
+    "receivedAt": "2026-09-05T14:10:00.000Z",
+    "body": "Hi,\n\nOur perimeter logs flagged a request to /documents/download with a name parameter that had a lot of dots and slashes in it. It returned 200 and about 2 kilobytes.\n\nI have not reproduced it and I am not going to start pulling files off production to prove a point. I would rather someone who knows the code read the handler and tell me whether what I think happened is what happened.\n\nContext you will want: this endpoint was changed last Thursday for an enterprise customer whose runbook downloads by filename. It went in as a support fix rather than a feature, so it did not get the review a feature would have.\n\nThe account manager on that customer has already asked me twice whether this is going to be \"called a vulnerability\".\n\nAisha",
+    "objectives": [
+      "Read the handler and decide whether a request can escape the storage directory",
+      "Work out what is reachable from the process the API runs as",
+      "Decide what the fix is, and what the customer is told about why their runbook changes again"
+    ]
+  },
+  "debrief": {
+    "rootCause": "The handler takes a filename straight from the query string and joins it onto the storage root. `path.join` resolves `..` segments as part of normalising the path, so a name like `../../../../etc/passwd` produces a path outside the root, and the stream serves whatever is there. The previous version of this route looked a document up by id and account and derived the path server-side; the change replaced a lookup with a parameter. The `path.basename` on the Content-Disposition header sanitises only the filename the browser shows, which makes a successful traversal look like an ordinary download in the logs.",
+    "businessImpact": "Any signed-in user can read any file the API process can read, which is the application source, the environment file holding the database URL and API keys, and every other customer’s stored documents. The credentials are the part that escalates: a leaked `.env` turns a file-read into database access, and from there it stops being about documents at all. Because the responses are ordinary 200s with plausible filenames attached, nothing in the application logs separates an exfiltration from a customer downloading their own export.",
+    "remediation": "Go back to looking the document up by id and account, so the path is derived from a row the caller is entitled to and never from the request — `resolveDocument` is still in the codebase and still does this. If a name-based route has to exist for the customer, resolve the candidate path and assert it is contained within the storage root before opening it, and treat every rejection as an alert rather than a 404. Then rotate everything in the environment file, because a credential that was readable for five days has to be assumed read."
+  },
+  "files": [
+    {
+      "path": "src/routes/documents.routes.ts",
+      "language": "typescript",
+      "code": "import { Router } from 'express';\nimport { createReadStream } from 'node:fs';\nimport path from 'node:path';\nimport { requireAuth } from '../middleware/requireAuth';\n\nconst STORAGE_ROOT = '/srv/documents';\n\nexport const documentRouter = Router();\n\ndocumentRouter.get('/documents/download', requireAuth, (req, res) => {\n  const name = String(req.query.name ?? '');\n  const absolute = path.join(STORAGE_ROOT, name);\n\n  res.setHeader('Content-Disposition', `attachment; filename=\"${path.basename(name)}\"`);\n  return createReadStream(absolute).pipe(res);\n});\n",
+      "vulnerableLines": [
+        12,
+        15
+      ],
+      "previousCode": "import { Router } from 'express';\nimport { createReadStream } from 'node:fs';\nimport { requireAuth } from '../middleware/requireAuth';\nimport { resolveDocument } from '../services/storage';\n\nexport const documentRouter = Router();\n\ndocumentRouter.get('/documents/:id/download', requireAuth, async (req, res) => {\n  const document = await resolveDocument(Number(req.params.id), req.user.accountId);\n\n  if (!document) {\n    return res.status(404).json({ error: 'Document not found' });\n  }\n\n  res.setHeader('Content-Disposition', `attachment; filename=\"${document.displayName}\"`);\n  return createReadStream(document.absolutePath).pipe(res);\n});\n",
+      "recentlyChanged": true
+    },
+    {
+      "path": "src/services/storage.ts",
+      "language": "typescript",
+      "code": "import path from 'node:path';\nimport { db } from '../db';\n\nconst STORAGE_ROOT = '/srv/documents';\n\nexport interface StoredDocument {\n  id: number;\n  accountId: number;\n  displayName: string;\n  absolutePath: string;\n}\n\nexport async function resolveDocument(\n  id: number,\n  accountId: number,\n): Promise<StoredDocument | null> {\n  const [row] = await db.query(\n    'select id, account_id, display_name, storage_key from documents where id = $1 and account_id = $2',\n    [id, accountId],\n  );\n  if (!row) return null;\n\n  return {\n    id: row.id,\n    accountId: row.account_id,\n    displayName: row.display_name,\n    absolutePath: path.join(STORAGE_ROOT, String(row.id), row.storage_key),\n  };\n}\n",
+      "vulnerableLines": [],
+      "previousCode": null,
+      "recentlyChanged": false
+    },
+    {
+      "path": "docs/SUP-3391.md",
+      "language": "markdown",
+      "code": "# SUP-3391 — \"Download link is broken for bulk exports\"\n\n**Account:** Northwind Logistics (enterprise, renewal in 6 weeks)\n**Raised by:** Account management, on behalf of the customer\n\nCustomer’s ops team downloads exports by filename from a runbook they wrote\nthemselves. Our URLs are by document id, so the runbook broke when we changed\nthe export naming.\n\nAM asked for \"the quickest thing that makes their runbook work again\". Shipped\nThursday. Customer confirmed working Friday.\n",
+      "vulnerableLines": [],
+      "previousCode": null,
+      "recentlyChanged": false
+    }
+  ],
+  "questions": [
+    {
+      "kind": "locate",
+      "prompt": "Which lines allow a request to read a file outside the storage directory?",
+      "options": [
+        {
+          "id": "a",
+          "text": "documents.routes.ts line 11 — the query parameter is coerced with String() instead of being validated"
+        },
+        {
+          "id": "b",
+          "text": "documents.routes.ts lines 12 and 15 — a client-supplied name is joined onto the root and the resulting path is opened"
+        },
+        {
+          "id": "c",
+          "text": "documents.routes.ts line 14 — path.basename is applied to the header but not to the path"
+        },
+        {
+          "id": "d",
+          "text": "storage.ts lines 17-20 — the query selects storage_key without checking that the file exists"
+        }
+      ],
+      "correctOption": "b",
+      "explanation": "Line 12 builds a filesystem path out of untrusted input and line 15 opens it. Line 14 is the detail that makes this hard to spot in review: `path.basename` appears in the handler and looks like sanitisation, but it only shapes the filename the browser shows. The file that gets opened is the one from line 12, untouched.",
+      "hints": [
+        "Trace the query parameter from the request to the filesystem. It is a short journey.",
+        "One line in this handler calls basename. Ask which value it protects, and which one it does not.",
+        "The line that builds the path and the line that opens it are the pair."
+      ]
+    },
+    {
+      "kind": "explain",
+      "prompt": "A request with `?name=../../../../etc/passwd` returns a file. Why does path.join not prevent that?",
+      "options": [
+        {
+          "id": "a",
+          "text": "path.join resolves .. segments while normalising, so the result is a legitimate path that happens to sit outside the root — join concatenates, it does not contain"
+        },
+        {
+          "id": "b",
+          "text": "path.join only rejects absolute paths on Windows, and this container runs Linux"
+        },
+        {
+          "id": "c",
+          "text": "Express decodes %2e%2e after the handler reads req.query, so the dots arrive later than the check"
+        },
+        {
+          "id": "d",
+          "text": "createReadStream follows symlinks, and /srv/documents contains one pointing at the filesystem root"
+        }
+      ],
+      "correctOption": "a",
+      "explanation": "`path.join` is a string operation with a normalisation step: it is doing exactly what it documents, which is to collapse `..` into a parent directory. Nothing in it knows that `/srv/documents` was meant to be a boundary, because containment is a question nobody asked. The fix is not a different join — it is resolving the path and then asserting where it landed, or better, never taking a path from the caller.",
+      "hints": [
+        "Write out what path.join returns for the root and that name. Read the result.",
+        "Ask what job path.join advertises, and whether \"stay inside this directory\" is any part of it."
+      ]
+    },
+    {
+      "kind": "solve",
+      "prompt": "Which fix closes this class of defect rather than this one string?",
+      "options": [
+        {
+          "id": "a",
+          "text": "Reject any name containing \"..\" before joining it onto the root"
+        },
+        {
+          "id": "b",
+          "text": "Strip every \"../\" sequence from the name, then join the cleaned value"
+        },
+        {
+          "id": "c",
+          "text": "Derive the path from a document row the caller is entitled to, and if a name-based route must exist, resolve it and assert containment within the root"
+        },
+        {
+          "id": "d",
+          "text": "Serve the files through nginx instead, so Node never touches the filesystem path"
+        }
+      ],
+      "correctOption": "c",
+      "explanation": "Options A and B are denylists against an encoding, and they lose to `%2e%2e/`, to `....//`, and to an absolute path that contains no `..` at all — B in particular strips one layer and hands you the next. The durable version is to stop treating the request as a source of filesystem paths: look the document up by id and account, as this route did last Wednesday, and if a filename route is genuinely required, resolve the path and check where it actually landed. Option D moves the same untrusted string to a different program.",
+      "hints": [
+        "For each of the first two options, try to think of one input that gets through.",
+        "The safe version of this route is in the file history, and its safe lookup is still in storage.ts.",
+        "Validation asks whether a string looks acceptable. What question does containment ask instead?"
+      ]
+    }
+  ],
+  "ethicalChoices": [
+    {
+      "text": "Restore the id-based lookup, tell Aisha it is a file-disclosure defect and that the environment file was readable, rotate the credentials, and say plainly in the customer ticket that a security defect was fixed — even with the renewal six weeks out.",
+      "quality": "good",
+      "outcome": "The rotation took a long evening and broke two integrations that had hardcoded the old key, which was its own useful discovery. The customer was told their runbook needed to move back to document ids and why, in a paragraph the account manager rewrote once and then let stand. They were not pleased about the runbook. They renewed, and their security team asked for the write-up and said it was the most straightforward one they had received from a vendor that year."
+    },
+    {
+      "text": "Ship a check that rejects any name containing \"..\", close SUP-3391 as an input-validation tidy-up, and leave the customer’s runbook working so the renewal conversation stays clean.",
+      "quality": "bad",
+      "outcome": "The check shipped and the obvious payload stopped working. Six weeks later, after the renewal signed, an external tester got through with percent-encoded dots in about forty minutes and pulled the environment file, which still held the keys nobody had rotated because nobody had called it an exposure. The report’s timeline put the original perimeter log, the ticket wording and the fix on the same page. The renewal held; the trust conversation with that customer did not."
+    },
+    {
+      "text": "Restore the id-based lookup and rotate the credentials, but let the account manager write the customer-facing note, and do not push back when it describes the change as a performance improvement to the export endpoint.",
+      "quality": "neutral",
+      "outcome": "The engineering was right and the customer was safe. The note was not true, and you knew it when you read it. Nothing came of it — the customer never asked, and the internal record was accurate even though the external one was not. What stayed with you was that the technical fix and the honest account had been treated as two separate jobs, and you had only signed up for one of them."
+    }
+  ]
+}

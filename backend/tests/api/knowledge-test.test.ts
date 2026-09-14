@@ -70,6 +70,7 @@ describe('POST /api/tests/:variant/attempt', () => {
     const [first, second] = res.body.attempt.answers;
     expect(first.correct).toBe(false);
     expect(first.principle).toBe('public');
+    // Still carried for the item map and the results export, just not shown as a badge.
     expect(first.clause).toBe('1.04');
     expect(first.feedback).toContain('Principle 1');
     expect(second.principle).toBe('product');

@@ -7,8 +7,21 @@ import { scenarioContentSchema } from '../../src/modules/catalog/infrastructure/
 const files = readdirSync(scenariosDirectory).filter((f) => f.endsWith('.json'));
 
 describe('authored scenarios', () => {
-  it('ships the two scenarios the project promised', () => {
-    expect(files.sort()).toEqual(['hardcoded-api-secret.json', 'sql-injection-auth-bypass.json']);
+  it('ships every scenario the project promised', () => {
+    expect(files.sort()).toEqual([
+      'broken-access-control-invoices.json',
+      'credentials-in-request-logs.json',
+      'hardcoded-api-secret.json',
+      'md5-password-hashes.json',
+      'path-traversal-document-download.json',
+      'sql-injection-auth-bypass.json',
+      'ssrf-link-preview.json',
+    ]);
+  });
+
+  it('covers a distinct vulnerability class in each case', () => {
+    const titles = files.map((f) => f.replace('.json', ''));
+    expect(new Set(titles).size).toBe(files.length);
   });
 
   describe.each(files)('%s', (fileName) => {

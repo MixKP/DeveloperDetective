@@ -1,0 +1,164 @@
+{
+  "slug": "broken-access-control-invoices",
+  "title": "Any customer can read any invoice",
+  "summary": "A customer changed one number in a URL and was shown another company’s invoice.",
+  "severity": "Critical",
+  "tags": [
+    "broken-access-control",
+    "idor",
+    "owasp-a01"
+  ],
+  "estimatedMinutes": 25,
+  "language": "typescript",
+  "brief": {
+    "sender": "Marta Oyelaran",
+    "senderRole": "Finance Operations Manager",
+    "subject": "A customer can see another customer’s invoice",
+    "receivedAt": "2026-08-24T09:05:00.000Z",
+    "body": "Hi,\n\nOne of our customers emailed finance this morning, not support. They were looking at an invoice, changed the number at the end of the URL out of curiosity, and were shown an invoice belonging to a different company — name, amount, the PDF link, everything.\n\nThey were decent enough to tell us instead of poking around further. They also said, and I quote, \"I assume you know how many of these I could have pulled.\"\n\nThey are signed in as themselves the whole time, so this is not someone breaking into an account. Which honestly makes it worse from where I sit.\n\nThe billing pages were reworked a few weeks ago. I do not know whether that is connected.\n\nI need to know today how long this has been possible and whose invoices were actually opened.\n\nMarta",
+    "objectives": [
+      "Find what lets a signed-in customer read a record that is not theirs",
+      "Work out whether authentication or authorisation is the thing that failed",
+      "Decide what a fix looks like that the next endpoint cannot repeat"
+    ]
+  },
+  "debrief": {
+    "rootCause": "The detail route loads an invoice by its primary key alone and returns it to whoever asked. `requireAuth` establishes who the caller is and nothing else, so the handler never compares the invoice’s account with the caller’s. The rework that introduced this swapped a scoped query for an unscoped one: `findInvoiceForAccount` is still exported from the service, still correct, and no longer called.",
+    "businessImpact": "Invoice ids are sequential, so the entire billing history of every customer is readable by any signed-in customer, one increment at a time — company names, amounts, payment status and the PDF links. For a B2B product that is commercially sensitive information about other customers, and under GDPR it is personal data where invoices carry named contacts. Nothing in the logs distinguishes a legitimate fetch from an enumeration, so the only way to know what was taken is to reconstruct it from access logs before they age out.",
+    "remediation": "Restore the scoped query so ownership is part of the lookup rather than a check a handler has to remember, and return 404 rather than 403 so the endpoint does not confirm which ids exist. Then add a test that a second account gets 404 for the first account’s invoice, because this defect is invisible to every test written from a single account’s point of view. Finally, pull the access logs for `/invoices/:id` and compare the account on the session with the account on the invoice, which is the only way to answer what was actually read."
+  },
+  "files": [
+    {
+      "path": "src/routes/invoices.routes.ts",
+      "language": "typescript",
+      "code": "import { Router } from 'express';\nimport { requireAuth } from '../middleware/requireAuth';\nimport { findInvoiceById, listInvoicesForAccount } from '../services/invoice.service';\n\nexport const invoiceRouter = Router();\n\ninvoiceRouter.get('/invoices', requireAuth, async (req, res) => {\n  const invoices = await listInvoicesForAccount(req.user.accountId);\n  return res.json({ invoices });\n});\n\ninvoiceRouter.get('/invoices/:id', requireAuth, async (req, res) => {\n  const invoice = await findInvoiceById(Number(req.params.id));\n\n  if (!invoice) {\n    return res.status(404).json({ error: 'Invoice not found' });\n  }\n\n  return res.json({ invoice });\n});\n",
+      "vulnerableLines": [
+        13,
+        19
+      ],
+      "previousCode": "import { Router } from 'express';\nimport { requireAuth } from '../middleware/requireAuth';\nimport { findInvoiceForAccount, listInvoicesForAccount } from '../services/invoice.service';\n\nexport const invoiceRouter = Router();\n\ninvoiceRouter.get('/invoices', requireAuth, async (req, res) => {\n  const invoices = await listInvoicesForAccount(req.user.accountId);\n  return res.json({ invoices });\n});\n\ninvoiceRouter.get('/invoices/:id', requireAuth, async (req, res) => {\n  const invoice = await findInvoiceForAccount(Number(req.params.id), req.user.accountId);\n\n  if (!invoice) {\n    return res.status(404).json({ error: 'Invoice not found' });\n  }\n\n  return res.json({ invoice });\n});\n",
+      "recentlyChanged": true
+    },
+    {
+      "path": "src/services/invoice.service.ts",
+      "language": "typescript",
+      "code": "import { db } from '../db';\n\nexport interface Invoice {\n  id: number;\n  accountId: number;\n  reference: string;\n  totalMinor: number;\n  pdfUrl: string;\n}\n\nexport async function listInvoicesForAccount(accountId: number): Promise<Invoice[]> {\n  return db.query('select * from invoices where account_id = $1 order by issued_at desc', [\n    accountId,\n  ]);\n}\n\nexport async function findInvoiceById(id: number): Promise<Invoice | null> {\n  const [row] = await db.query('select * from invoices where id = $1', [id]);\n  return row ?? null;\n}\n\n// Still exported, still correct, and no longer called from anywhere.\nexport async function findInvoiceForAccount(\n  id: number,\n  accountId: number,\n): Promise<Invoice | null> {\n  const [row] = await db.query('select * from invoices where id = $1 and account_id = $2', [\n    id,\n    accountId,\n  ]);\n  return row ?? null;\n}\n",
+      "vulnerableLines": [],
+      "previousCode": null,
+      "recentlyChanged": false
+    },
+    {
+      "path": "src/middleware/requireAuth.ts",
+      "language": "typescript",
+      "code": "import type { NextFunction, Request, Response } from 'express';\nimport { verifyToken } from '../services/token.service';\n\nexport async function requireAuth(req: Request, res: Response, next: NextFunction) {\n  const header = req.headers.authorization ?? '';\n  const token = header.startsWith('Bearer ') ? header.slice(7) : null;\n\n  if (!token) {\n    return res.status(401).json({ error: 'Sign in to continue' });\n  }\n\n  const claims = await verifyToken(token);\n  if (!claims) {\n    return res.status(401).json({ error: 'Session expired' });\n  }\n\n  req.user = { id: claims.sub, accountId: claims.account_id };\n  return next();\n}\n",
+      "vulnerableLines": [],
+      "previousCode": null,
+      "recentlyChanged": false
+    }
+  ],
+  "questions": [
+    {
+      "kind": "locate",
+      "prompt": "Which lines let one customer read another customer’s invoice?",
+      "options": [
+        {
+          "id": "a",
+          "text": "requireAuth.ts lines 12-14 — the token claims are trusted without checking the issuer"
+        },
+        {
+          "id": "b",
+          "text": "invoices.routes.ts lines 13 and 19 — the invoice is loaded by id alone and returned without an ownership check"
+        },
+        {
+          "id": "c",
+          "text": "invoice.service.ts lines 11-15 — listInvoicesForAccount selects every column, including pdf_url"
+        },
+        {
+          "id": "d",
+          "text": "invoices.routes.ts line 8 — the list endpoint exposes the caller’s account id to the client"
+        }
+      ],
+      "correctOption": "b",
+      "explanation": "Line 13 looks the invoice up by primary key with nothing else in the predicate, and line 19 hands it back. Between them there is no point at which the invoice’s account is compared with the caller’s. The list endpoint two routes above does scope by account, which is what makes this one easy to miss in review — the file looks like it handles ownership.",
+      "hints": [
+        "Compare the two routes in this file. One of them mentions the caller’s account and one does not.",
+        "Ask what the database is given to match on, and what it is not given.",
+        "Look at the argument list on line 13, then at what line 19 returns."
+      ]
+    },
+    {
+      "kind": "explain",
+      "prompt": "Every request to this endpoint carries a valid, signed session. Why is that not enough?",
+      "options": [
+        {
+          "id": "a",
+          "text": "The token is signed but not encrypted, so a client can edit the account id inside it"
+        },
+        {
+          "id": "b",
+          "text": "Express reuses `req.user` across concurrent requests, so under load a handler can see another session’s user"
+        },
+        {
+          "id": "c",
+          "text": "Authentication establishes who is calling; it says nothing about what that caller may see, and this route never asks the second question"
+        },
+        {
+          "id": "d",
+          "text": "Returning 404 for a missing invoice reveals which ids exist, which is what allows the enumeration"
+        }
+      ],
+      "correctOption": "c",
+      "explanation": "The two questions are separate and only one of them is being asked. `requireAuth` answers \"is this a real session, and whose\" — correctly. Nothing then answers \"is this caller allowed to see this row\". Option D describes a genuine but much smaller problem, and one worth fixing in the same change: a 404 that only appears for ids that do not exist is a disclosure of its own. It is not, however, what lets someone read the invoice.",
+      "hints": [
+        "Name the two different questions a request has to answer before data is returned.",
+        "The middleware answers one of them. Find the line that answers the other."
+      ]
+    },
+    {
+      "kind": "solve",
+      "prompt": "Which fix closes this class of defect rather than this one endpoint?",
+      "options": [
+        {
+          "id": "a",
+          "text": "Replace the sequential ids with UUIDs so an invoice id cannot be guessed"
+        },
+        {
+          "id": "b",
+          "text": "Rate-limit the endpoint so enumerating every invoice takes too long to be worthwhile"
+        },
+        {
+          "id": "c",
+          "text": "Add `if (invoice.accountId !== req.user.accountId) return res.status(403)` to the handler"
+        },
+        {
+          "id": "d",
+          "text": "Make ownership part of the query itself, so no handler can forget it, and add a test that a second account gets 404"
+        }
+      ],
+      "correctOption": "d",
+      "explanation": "Option C is correct and is the minimum, but it leaves the next handler free to forget the same check — which is exactly what happened here. Scoping the query makes the safe path the only path, and `findInvoiceForAccount` is already sitting in the service. The test matters as much as the fix: every test written from one account’s point of view passes against this bug, which is why it shipped. Option A is obscurity, and option B slows an attack down without stopping it.",
+      "hints": [
+        "The safe version of this lookup already exists in the codebase.",
+        "Ask why the review did not catch it, and what change would make the next one impossible to miss.",
+        "What kind of test would have failed on the day this shipped?"
+      ]
+    }
+  ],
+  "ethicalChoices": [
+    {
+      "text": "Restore the scoped query today, tell the data protection lead before lunch, and pull the access logs to work out whose invoices were actually opened — knowing that the answer probably means notifying customers.",
+      "quality": "good",
+      "outcome": "The fix took an afternoon. The log analysis took three days and found eleven cross-account fetches, nine of them by the customer who reported it and two from an account that had been closed for months. Legal notified four companies. It was an uncomfortable week and two of those companies asked hard questions on their next renewal call, but both renewed, and one of them said the notification was the reason they trusted the answer."
+    },
+    {
+      "text": "Fix it in tonight’s deploy under a ticket titled \"tidy up invoice lookup\", and leave the six weeks it was live out of the write-up.",
+      "quality": "bad",
+      "outcome": "The fix was correct and shipped quietly. Four months later the customer who found it mentioned it in a security questionnaire during their renewal, and the account team had no record of it having been an incident at all. The reconstruction that followed had to work from logs that had aged out, so the honest answer to \"whose data was exposed\" became \"we cannot tell\". The finding in the audit was not about the bug."
+    },
+    {
+      "text": "Fix it properly, write an accurate internal ticket describing what was exposed and for how long, and leave the question of customer notification to whoever picks the ticket up next.",
+      "quality": "neutral",
+      "outcome": "The ticket was accurate and nobody could say you hid anything. It also sat in the backlog for nine days before a security engineer read it and escalated, by which point two weeks of access logs had rotated out. The fix was right and the record was honest; what was missing was that a live cross-account data exposure is something you carry to a person, not something you leave in a queue."
+    }
+  ]
+}

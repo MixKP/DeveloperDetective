@@ -228,8 +228,18 @@ locked.
 The seed upserts by natural key rather than wiping and reinserting, so row ids stay stable
 and existing learner progress survives a reseed.
 
-Two scenarios ship: **SQL injection authentication bypass** (Critical) and **a live payment
-key committed to a public repository** (High).
+Seven scenarios ship, each a different vulnerability class paired with a different kind of
+pressure to do the easy thing:
+
+| Scenario                          | Class                   | Severity |
+| --------------------------------- | ----------------------- | -------- |
+| SQL injection auth bypass         | Injection               | Critical |
+| Any customer can read any invoice | Broken access control   | Critical |
+| Download endpoint serves any file | Path traversal          | Critical |
+| A live payment key in the repo    | Secrets management      | High     |
+| Passwords in the log pipeline     | Sensitive data exposure | High     |
+| Unsalted MD5 password hashes      | Cryptographic failure   | High     |
+| Link preview fetches anything     | SSRF                    | High     |
 
 ---
 
@@ -237,9 +247,9 @@ key committed to a public repository** (High).
 
 | Command                    | Does                                                                        |
 | -------------------------- | --------------------------------------------------------------------------- |
-| `npm test`                 | 149 tests — domain, application, API, content, stores. No database required |
+| `npm test`                 | 180 tests — domain, application, API, content, stores. No database required |
 | `npm run test:integration` | 26 tests — Drizzle repositories and the seed against real PostgreSQL        |
-| `npm run test:e2e`         | 10 tests — the full journey in a real browser (Playwright)                  |
+| `npm run test:e2e`         | 11 tests — the full journey in a real browser (Playwright)                  |
 | `npm run test:all`         | All three levels                                                            |
 | `npm run typecheck`        | All three workspaces                                                        |
 | `npm run lint`             | Includes the architecture boundary rules                                    |

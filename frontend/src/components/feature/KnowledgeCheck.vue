@@ -78,9 +78,7 @@ const optionText = (questionId: number, optionId: string) =>
             <div class="flex-1">
               <div class="flex flex-wrap items-center gap-2">
                 <span class="text-xs text-muted">Question {{ index + 1 }}</span>
-                <BaseBadge>
-                  {{ principleLabels[answer.principle] }} · clause {{ answer.clause }}
-                </BaseBadge>
+                <BaseBadge>{{ principleLabels[answer.principle] }}</BaseBadge>
               </div>
               <p class="mt-1.5 text-sm font-medium text-balance">
                 {{ promptFor(answer.questionId) }}
