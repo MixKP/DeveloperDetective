@@ -33,6 +33,8 @@ async function importOne(db: Database, content: KnowledgeTestContentInput): Prom
     variant: content.variant,
     title: content.title,
     description: content.description,
+    questionsPerAttempt: content.questionsPerAttempt ?? content.questions.length,
+    guidance: content.guidance,
   };
 
   const [test] = await db

@@ -19,6 +19,10 @@ async function submit(answers: Record<number, string>) {
     // the attempt it was refused for.
   }
 }
+
+function retake() {
+  void knowledgeTest.retake();
+}
 </script>
 
 <template>
@@ -41,8 +45,9 @@ async function submit(answers: Record<number, string>) {
       v-if="knowledgeTest.test"
       :test="knowledgeTest.test"
       :attempt="knowledgeTest.attempt"
-      :busy="knowledgeTest.submitting"
+      :busy="knowledgeTest.submitting || knowledgeTest.loading"
       @submit="submit"
+      @retake="retake"
     />
   </div>
 </template>

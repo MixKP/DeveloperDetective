@@ -46,6 +46,16 @@ describe('the knowledge test seed', () => {
     expect(test?.slug).toBe('core-professional-ethics');
     expect(test?.questions.length).toBeGreaterThanOrEqual(10);
   });
+
+  it('imported the sitting size and the per-principle guidance', async () => {
+    const test = await catalog.findByVariant('post');
+
+    expect(test?.questionsPerAttempt).toBeGreaterThanOrEqual(8);
+    expect(test!.questionsPerAttempt).toBeLessThanOrEqual(test!.questions.length);
+    for (const question of test!.questions) {
+      expect(test!.guidance[question.principle], question.principle).toBeTruthy();
+    }
+  });
 });
 
 describe('the catalog projection', () => {
@@ -59,54 +69,61 @@ describe('the catalog projection', () => {
 });
 
 describe('DrizzleAttemptRepository', () => {
-  it('round-trips an attempt with its answers in question order', async () => {
+  /** One sitting of the first `size` questions, answered with the first option. */
+  const sitting = async (attemptNumber: number, size: number) => {
     const test = await catalog.findByVariant('post');
     if (!test) throw new Error('the post-test was not seeded');
 
-    const selections = test.questions.map((question) => ({
-      questionId: question.id,
-      optionId: question.options[0]!.id,
-    }));
+    const asked = test.questions.slice(0, size);
+    const graded = await answerKey.grade(
+      test.id,
+      asked.map((question) => ({ questionId: question.id, optionId: question.options[0]!.id })),
+    );
 
-    const graded = await answerKey.grade(test.id, selections);
-    expect(graded).toHaveLength(test.questions.length);
-
-    await attempts.save(
-      Attempt.submit(
+    return {
+      test,
+      asked,
+      attempt: Attempt.submit(
         LEARNER,
         test.id,
+        attemptNumber,
         graded.map((answer) => ({
           questionId: answer.questionId,
           selectedOption: answer.selectedOption,
           correct: answer.correct,
         })),
-        test.questions.map((question) => question.id),
+        asked.map((question) => question.id),
       ),
-    );
+    };
+  };
 
-    const restored = await attempts.find(LEARNER, test.id);
-    expect(restored).not.toBeNull();
-    expect(restored!.gradedAnswers.map((a) => a.questionId)).toEqual(
-      test.questions.map((q) => q.id),
+  it('round-trips a sitting with its answers', async () => {
+    const { test, asked, attempt } = await sitting(1, 8);
+
+    await attempts.save(attempt);
+
+    const [restored, ...rest] = await attempts.history(LEARNER, test.id);
+    expect(rest).toEqual([]);
+    expect(restored!.attemptNumber).toBe(1);
+    expect([...restored!.gradedAnswers].map((a) => a.questionId).sort()).toEqual(
+      asked.map((q) => q.id).sort(),
     );
-    expect(restored!.score.total).toBe(test.questions.length);
+    expect(restored!.score.total).toBe(asked.length);
   });
 
-  it('refuses a second attempt at the database level, not only in the aggregate', async () => {
-    const test = await catalog.findByVariant('post');
-    if (!test) throw new Error('the post-test was not seeded');
+  it('keeps every sitting, numbered and in order', async () => {
+    const second = await sitting(2, 4);
 
-    const duplicate = Attempt.submit(
-      LEARNER,
-      test.id,
-      test.questions.map((question) => ({
-        questionId: question.id,
-        selectedOption: question.options[0]!.id,
-        correct: false,
-      })),
-      test.questions.map((question) => question.id),
-    );
+    await attempts.save(second.attempt);
 
-    await expect(attempts.save(duplicate)).rejects.toThrow();
+    const history = await attempts.history(LEARNER, second.test.id);
+    expect(history.map((a) => a.attemptNumber)).toEqual([1, 2]);
+    expect(history[1]!.score.total).toBe(4);
+  });
+
+  it('refuses a repeat of a sitting already recorded, at the database level', async () => {
+    const duplicate = await sitting(2, 4);
+
+    await expect(attempts.save(duplicate.attempt)).rejects.toThrow(/already been recorded/i);
   });
 });

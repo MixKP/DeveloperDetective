@@ -168,26 +168,39 @@ test.describe('the learner journey', () => {
     await expect(check).not.toContainText('to unlock this');
     await check.getByRole('button', { name: 'Start the knowledge check' }).click();
 
+    // One question per principle of the Code, drawn from a larger bank.
     const items = check.locator('ol > li');
-    await expect(items).toHaveCount(10);
+    // The second paragraph of each item is the prompt; the first is "Question n".
+    const prompts = () => check.locator('ol > li > p:nth-child(2)').allInnerTexts();
+    await expect(items).toHaveCount(8);
+    const firstSitting = await prompts();
 
-    for (let i = 0; i < 10; i += 1) {
+    for (let i = 0; i < 8; i += 1) {
       await items.nth(i).getByRole('radio').first().check();
     }
-    await expect(check.getByText('10 of 10 answered')).toBeVisible();
+    await expect(check.getByText('8 of 8 answered')).toBeVisible();
 
     await check.getByRole('button', { name: 'Submit the knowledge check' }).click();
 
-    await expect(check.getByText('Your result')).toBeVisible();
+    await expect(check.getByText('Attempt 1')).toBeVisible();
     // The feedback names the principle it turns on; clause numbers stay in the record.
     await expect(check.getByText(/Principle \d/).first()).toBeVisible();
     await expect(check.getByText(/clause \d/)).toHaveCount(0);
     await expect(check.getByRole('button', { name: 'Submit the knowledge check' })).toHaveCount(0);
 
-    // One sitting: a reload replays the recorded attempt rather than reopening it.
+    // A finished sitting is replayed on reload rather than reopened.
     await page.reload();
-    await expect(check.getByText('Your result')).toBeVisible();
+    await expect(check.getByText('Attempt 1')).toBeVisible();
     await expect(check.getByRole('button', { name: 'Start the knowledge check' })).toHaveCount(0);
+
+    // The retake deals a different hand from the same bank (ADR 0010).
+    await check.getByRole('button', { name: /Sit it again/ }).click();
+    await expect(check.getByText('Attempt 2 ·')).toBeVisible();
+    await expect(items).toHaveCount(8);
+    const secondSitting = await prompts();
+    expect(secondSitting).toHaveLength(8);
+    expect(secondSitting).not.toEqual(firstSitting);
+    expect(secondSitting.filter((prompt) => firstSitting.includes(prompt))).toEqual([]);
   });
 
   test('progress survives a reload, because it lives on the server', async ({ page }) => {

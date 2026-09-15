@@ -9,6 +9,17 @@ const optionSchema = z.object({
   feedback: z.string().min(1),
 });
 
+const principleSchema = z.enum([
+  'public',
+  'client-and-employer',
+  'product',
+  'judgement',
+  'management',
+  'profession',
+  'colleagues',
+  'self',
+]);
+
 const questionSchema = z
   .object({
     principle: z.enum([
@@ -45,7 +56,25 @@ export const knowledgeTestContentSchema = z
     variant: z.enum(['pre', 'post']),
     title: z.string().min(1),
     description: z.string().min(1),
+    /**
+     * How many questions one sitting asks. The bank is deliberately larger, so a
+     * retake can deal a different hand (ADR 0010); a test that omits this asks
+     * everything it has, which is the old behaviour.
+     */
+    questionsPerAttempt: z.number().int().positive().optional(),
+    /** What to revise, per principle. Shown only after a sitting missed one. */
+    guidance: z.record(principleSchema, z.string().min(1)).default({}),
     questions: z.array(questionSchema).min(1),
+  })
+  .refine((t) => (t.questionsPerAttempt ?? t.questions.length) <= t.questions.length, {
+    message: 'questionsPerAttempt asks for more questions than the test has',
+    path: ['questionsPerAttempt'],
+  })
+  // Guidance is what a wrong answer is answered with, so every principle the test
+  // can mark wrong has to have some.
+  .refine((t) => t.questions.every((q) => t.guidance[q.principle] !== undefined), {
+    message: 'every principle a question covers needs guidance authored for it',
+    path: ['guidance'],
   })
   // Drafting a bank one question at a time tends to park the right answer in the
   // same slot every time, which a learner can exploit without reading anything.

@@ -30,7 +30,9 @@ export class DrizzleTestAnswerKey implements TestAnswerKey {
 
       graded.push({
         questionId: question.id,
+        prompt: question.prompt,
         selectedOption: selection.optionId,
+        selectedText: chosen?.text ?? '',
         correctOption: question.correctOption,
         correct: question.correctOption === selection.optionId,
         principle: question.principle,

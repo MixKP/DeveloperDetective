@@ -31,6 +31,10 @@ export const knowledgeTests = pgTable('knowledge_tests', {
   variant: testVariantEnum('variant').notNull(),
   title: text('title').notNull(),
   description: text('description').notNull(),
+  // The bank is larger than one sitting: a retake draws a different subset of it.
+  questionsPerAttempt: integer('questions_per_attempt').notNull().default(10),
+  // What to revise, per principle, shown only to a learner who missed one.
+  guidance: jsonb('guidance').$type<Record<string, string>>().notNull().default({}),
 });
 
 export const knowledgeQuestions = pgTable(
@@ -61,14 +65,16 @@ export const testAttempts = pgTable(
     testId: integer('test_id')
       .notNull()
       .references(() => knowledgeTests.id, { onDelete: 'cascade' }),
+    attemptNumber: integer('attempt_number').notNull().default(1),
     score: integer('score').notNull(),
     total: integer('total').notNull(),
     submittedAt: timestamp('submitted_at', { withTimezone: true }).notNull().defaultNow(),
   },
   (t) => [
-    // One sitting per learner per test. The aggregate refuses a retake, and this
-    // keeps a race between two tabs from producing two results to report.
-    unique('test_attempts_learner_test_key').on(t.learnerId, t.testId),
+    // Sittings are numbered, and a learner holds one row per sitting (ADR 0010).
+    // Two tabs submitting the same draw derive the same number, so this is what
+    // keeps a race from producing two results for one sitting.
+    unique('test_attempts_learner_test_number_key').on(t.learnerId, t.testId, t.attemptNumber),
     index('test_attempts_test_idx').on(t.testId),
   ],
 );

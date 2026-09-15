@@ -1,6 +1,6 @@
 <script setup lang="ts">
-import { computed, ref } from 'vue';
-import { BookOpenCheck, CheckCircle2, Lock, XCircle } from 'lucide-vue-next';
+import { computed, ref, watch } from 'vue';
+import { BookOpenCheck, CheckCircle2, Lock, RotateCcw, XCircle } from 'lucide-vue-next';
 import type { AttemptResult, KnowledgeTestResponse } from '@dd/shared';
 import BaseBadge from '@/components/ui/BaseBadge.vue';
 import BaseButton from '@/components/ui/BaseButton.vue';
@@ -13,28 +13,47 @@ const props = defineProps<{
   attempt: AttemptResult | null;
   busy: boolean;
 }>();
-const emit = defineEmits<{ submit: [answers: Record<number, string>] }>();
+const emit = defineEmits<{ submit: [answers: Record<number, string>]; retake: [] }>();
 
 const started = ref(false);
 const answers = ref<Record<number, string>>({});
-
-const answeredCount = computed(
-  () => props.test.questions.filter((question) => answers.value[question.id]).length,
-);
-const complete = computed(() => answeredCount.value === props.test.questions.length);
 
 const eligibility = computed(() => props.test.eligibility);
 const casesOwed = computed(() =>
   Math.max(eligibility.value.casesRequired - eligibility.value.casesCompleted, 0),
 );
 
-const promptFor = (questionId: number) =>
-  props.test.questions.find((question) => question.id === questionId)?.prompt ?? '';
+const answeredCount = computed(
+  () => props.test.questions.filter((question) => answers.value[question.id]).length,
+);
+const complete = computed(() => answeredCount.value === props.test.questions.length);
 
-const optionText = (questionId: number, optionId: string) =>
-  props.test.questions
-    .find((question) => question.id === questionId)
-    ?.options.find((option) => option.id === optionId)?.text ?? '';
+const view = computed(() => {
+  if (!eligibility.value.eligible) return 'locked';
+  if (started.value) return 'taking';
+  return props.attempt ? 'result' : 'intro';
+});
+
+// A submitted sitting turns into its own result. A retake is answered with a new
+// draw, and a new draw means a new attempt number — which is the signal to open
+// the questions rather than the result the learner has just read.
+watch(
+  () => props.attempt,
+  () => {
+    started.value = false;
+  },
+);
+
+watch(
+  () => props.test.attemptNumber,
+  () => {
+    answers.value = {};
+    started.value = true;
+  },
+);
+
+const dateOf = (iso: string) =>
+  new Date(iso).toLocaleDateString(undefined, { day: 'numeric', month: 'short' });
 </script>
 
 <template>
@@ -47,18 +66,74 @@ const optionText = (questionId: number, optionId: string) =>
       <p class="mt-1 text-sm text-muted">{{ test.description }}</p>
     </header>
 
-    <!-- Already sat: the score and, for every question, the feedback for the option
-         that was actually chosen. -->
-    <template v-if="attempt">
+    <!-- Locked: the server sent no questions at all, so there is nothing here to hide.
+         The test asks what the platform taught, which means closing a case first. -->
+    <template v-if="view === 'locked'">
+      <div class="flex items-start gap-3">
+        <Lock class="mt-0.5 size-4 shrink-0 text-muted" aria-hidden="true" />
+        <div class="flex-1">
+          <p class="text-sm">
+            Close
+            {{ casesOwed }}
+            more {{ casesOwed === 1 ? 'case' : 'cases' }} to unlock this. It measures what you take
+            away from the platform, so it comes after the casework — ideally after all
+            {{ eligibility.casesTotal }}.
+          </p>
+          <p class="mt-3 text-xs text-muted">
+            {{ eligibility.casesCompleted }} of {{ eligibility.casesTotal }} cases closed
+          </p>
+          <ProgressBar
+            class="mt-2"
+            :value="eligibility.casesCompleted"
+            :max="eligibility.casesTotal"
+          />
+        </div>
+      </div>
+    </template>
+
+    <!-- The sitting just finished: the score, what to revise, and the feedback for
+         every option that was actually chosen. -->
+    <template v-else-if="view === 'result' && attempt">
       <div class="flex flex-wrap items-center justify-between gap-4">
         <div>
-          <p class="text-xs font-medium tracking-wide text-muted uppercase">Your result</p>
+          <p class="text-xs font-medium tracking-wide text-muted uppercase">
+            Attempt {{ attempt.attemptNumber }}
+          </p>
           <p class="mt-1 text-3xl font-semibold tabular-nums">
             {{ attempt.score }}<span class="text-lg text-muted">/{{ attempt.total }}</span>
           </p>
         </div>
         <div class="min-w-48 flex-1">
           <ProgressBar :value="attempt.score" :max="attempt.total" />
+        </div>
+      </div>
+
+      <!-- What to do next, grouped by principle: two wrong answers about one
+           principle are one gap, and the gap is the thing worth revising. -->
+      <div class="rounded-[var(--dd-radius-sm)] bg-elevated px-4 py-3">
+        <p class="text-sm">{{ attempt.summary.verdict }}</p>
+
+        <dl v-if="attempt.summary.missed.length > 0" class="mt-3 flex flex-col gap-3">
+          <div v-for="gap in attempt.summary.missed" :key="gap.principle">
+            <dt class="flex flex-wrap items-center gap-2 text-sm font-medium">
+              <BaseBadge>{{ principleLabels[gap.principle] }}</BaseBadge>
+              <span class="text-xs text-muted">
+                {{ gap.questionIds.length }}
+                {{ gap.questionIds.length === 1 ? 'answer' : 'answers' }} missed
+              </span>
+            </dt>
+            <dd class="mt-1 text-sm text-muted">{{ gap.guidance }}</dd>
+          </div>
+        </dl>
+
+        <div
+          v-if="attempt.summary.mastered.length > 0"
+          class="mt-3 flex flex-wrap items-center gap-2"
+        >
+          <span class="text-xs text-muted">Held:</span>
+          <BaseBadge v-for="principle in attempt.summary.mastered" :key="principle">
+            {{ principleLabels[principle] }}
+          </BaseBadge>
         </div>
       </div>
 
@@ -85,12 +160,8 @@ const optionText = (questionId: number, optionId: string) =>
                 <span class="text-xs text-muted">Question {{ index + 1 }}</span>
                 <BaseBadge>{{ principleLabels[answer.principle] }}</BaseBadge>
               </div>
-              <p class="mt-1.5 text-sm font-medium text-balance">
-                {{ promptFor(answer.questionId) }}
-              </p>
-              <p class="mt-1 text-sm text-muted">
-                You chose: {{ optionText(answer.questionId, answer.selectedOption) }}
-              </p>
+              <p class="mt-1.5 text-sm font-medium text-balance">{{ answer.prompt }}</p>
+              <p class="mt-1 text-sm text-muted">You chose: {{ answer.selectedText }}</p>
               <p class="mt-2 text-sm">{{ answer.feedback }}</p>
               <p v-if="!answer.correct" class="mt-2 text-sm text-muted">
                 {{ answer.explanation }}
@@ -99,39 +170,30 @@ const optionText = (questionId: number, optionId: string) =>
           </div>
         </li>
       </ol>
-    </template>
 
-    <!-- Locked: the server sent no questions at all, so there is nothing here to hide.
-         The test asks what the platform taught, which means closing a case first. -->
-    <template v-else-if="!eligibility.eligible">
-      <div class="flex items-start gap-3">
-        <Lock class="mt-0.5 size-4 shrink-0 text-muted" aria-hidden="true" />
-        <div class="flex-1">
-          <p class="text-sm">
-            Close
-            {{ casesOwed }}
-            more {{ casesOwed === 1 ? 'case' : 'cases' }} to unlock this. It measures what you take
-            away from the platform, so it comes after the casework — ideally after all
-            {{ eligibility.casesTotal }}.
-          </p>
-          <p class="mt-3 text-xs text-muted">
-            {{ eligibility.casesCompleted }} of {{ eligibility.casesTotal }} cases closed
-          </p>
-          <ProgressBar
-            class="mt-2"
-            :value="eligibility.casesCompleted"
-            :max="eligibility.casesTotal"
-          />
-        </div>
+      <div class="flex flex-wrap items-center justify-between gap-3 border-t border-border pt-4">
+        <p v-if="test.history.length > 1" class="text-xs text-muted">
+          <span v-for="(record, index) in test.history" :key="record.attemptNumber">
+            <span v-if="index > 0"> · </span>
+            #{{ record.attemptNumber }} {{ record.score }}/{{ record.total }} ({{
+              dateOf(record.submittedAt)
+            }})
+          </span>
+        </p>
+        <BaseButton class="ml-auto" variant="secondary" :disabled="busy" @click="emit('retake')">
+          <RotateCcw class="size-4" aria-hidden="true" />
+          Sit it again with different questions
+        </BaseButton>
       </div>
     </template>
 
     <!-- Not sat yet. The questions stay hidden behind a deliberate click so that a
-         learner does not start the test by accident while scrolling the dashboard. -->
-    <template v-else-if="!started">
+         learner does not start the test by accident while scrolling the page. -->
+    <template v-else-if="view === 'intro'">
       <p class="text-sm text-muted">
-        No hints here, and no second attempt — this measures what you take away from the platform,
-        so answer from your own judgement.
+        No hints, and a sitting is submitted whole — this measures what you take away from the
+        platform, so answer from your own judgement. You can sit it again afterwards, and the retake
+        draws different questions.
       </p>
       <BaseButton class="self-start" :disabled="busy" @click="started = true">
         Start the knowledge check
@@ -139,6 +201,11 @@ const optionText = (questionId: number, optionId: string) =>
     </template>
 
     <template v-else>
+      <p class="text-xs text-muted">
+        Attempt {{ test.attemptNumber }} · {{ test.questions.length }} questions, one per principle
+        of the Code.
+      </p>
+
       <ol class="flex flex-col gap-4">
         <li
           v-for="(question, index) in test.questions"
@@ -174,7 +241,8 @@ const optionText = (questionId: number, optionId: string) =>
 
       <div class="flex flex-wrap items-center justify-between gap-3 border-t border-border pt-4">
         <p class="text-xs text-muted">
-          {{ answeredCount }} of {{ test.questions.length }} answered. This cannot be retaken.
+          {{ answeredCount }} of {{ test.questions.length }} answered. This sitting is submitted
+          whole and cannot be edited afterwards.
         </p>
         <BaseButton :disabled="!complete || busy" @click="emit('submit', answers)">
           Submit the knowledge check

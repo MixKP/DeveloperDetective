@@ -1,11 +1,14 @@
 import type {
-  AttemptResult,
+  AttemptRecord,
   KnowledgeTestResponse,
   TestEligibility,
+  TestQuestionView,
   TestVariant,
 } from '@dd/shared';
 import type { Attempt } from '../domain/Attempt.js';
 import { Eligibility } from '../domain/Eligibility.js';
+import type { KnowledgeTestContent } from '../domain/readModels.js';
+import { shuffle } from '../domain/shuffle.js';
 import { NotFoundError } from './errors.js';
 import type {
   AttemptRepository,
@@ -13,6 +16,8 @@ import type {
   KnowledgeTestCatalog,
   TestAnswerKey,
 } from './ports.js';
+import { resultOf } from './resultOf.js';
+import { sittingFor } from './sitting.js';
 
 export class GetKnowledgeTest {
   constructor(
@@ -26,24 +31,27 @@ export class GetKnowledgeTest {
     const test = await this.catalog.findByVariant(variant);
     if (!test) throw new NotFoundError('Knowledge test');
 
-    const [attempt, eligibility] = await Promise.all([
-      this.attempts.find(learnerId, test.id),
+    const [history, eligibility] = await Promise.all([
+      this.attempts.history(learnerId, test.id),
       this.eligibilityOf(learnerId),
     ]);
 
-    // A locked test does not ship its questions at all. Hiding them in the client would
-    // leave them one devtools tab away, and the gate exists so that nobody sits the
-    // post-test before the platform has had anything to teach them.
-    const released = eligibility.eligible || attempt !== null;
+    const sitting = sittingFor(learnerId, test, history);
+    const latest = history.at(-1) ?? null;
 
+    // A locked test does not ship its questions at all. Hiding them in the client
+    // would leave them one devtools tab away, and the gate exists so that nobody
+    // sits the post-test before the platform has had anything to teach them.
     return {
       slug: test.slug,
       variant: test.variant,
       title: test.title,
       description: test.description,
-      questions: released ? test.questions : [],
+      questions: eligibility.eligible ? views(test, sitting.questionIds, sitting.seed) : [],
       eligibility: toView(eligibility),
-      attempt: attempt ? await this.resultFor(test.id, attempt) : null,
+      attemptNumber: sitting.attemptNumber,
+      attempt: latest ? await resultOf(this.answerKey, test, latest) : null,
+      history: history.map(record),
     };
   }
 
@@ -54,28 +62,44 @@ export class GetKnowledgeTest {
     ]);
     return Eligibility.assess(completed, total);
   }
+}
 
-  /**
-   * A finished attempt is re-graded from the stored selections rather than from a
-   * copy of the feedback taken at submit time, so the key stays the single source
-   * of truth and a corrected explanation reaches everyone who already sat the test.
-   */
-  private async resultFor(testId: number, attempt: Attempt): Promise<AttemptResult> {
-    const answers = await this.answerKey.grade(
-      testId,
-      attempt.gradedAnswers.map((answer) => ({
-        questionId: answer.questionId,
-        optionId: answer.selectedOption,
-      })),
-    );
+/**
+ * The questions of one sitting, in the drawn order, each with its own options
+ * shuffled. Mapped field by field rather than spread: `principle` names half the
+ * answer, and it must not travel with a question the learner has yet to answer.
+ */
+function views(
+  test: KnowledgeTestContent,
+  questionIds: readonly number[],
+  seed: number,
+): TestQuestionView[] {
+  const byId = new Map(test.questions.map((question) => [question.id, question]));
 
-    return {
-      score: attempt.score.value,
-      total: attempt.score.total,
-      submittedAt: attempt.submittedAt.toISOString(),
-      answers,
-    };
-  }
+  return questionIds.flatMap((id, index) => {
+    const question = byId.get(id);
+    if (!question) return [];
+    return [
+      {
+        id: question.id,
+        prompt: question.prompt,
+        orderIndex: index,
+        options: shuffle(question.options, seed + question.id).map((option) => ({
+          id: option.id,
+          text: option.text,
+        })),
+      },
+    ];
+  });
+}
+
+function record(attempt: Attempt): AttemptRecord {
+  return {
+    attemptNumber: attempt.attemptNumber,
+    score: attempt.score.value,
+    total: attempt.score.total,
+    submittedAt: attempt.submittedAt.toISOString(),
+  };
 }
 
 function toView(eligibility: Eligibility): TestEligibility {

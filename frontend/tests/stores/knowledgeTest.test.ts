@@ -56,7 +56,9 @@ const test = (over: Partial<KnowledgeTestResponse> = {}): KnowledgeTestResponse 
     },
   ],
   eligibility: { eligible: true, casesCompleted: 1, casesRequired: 1, casesTotal: 7 },
+  attemptNumber: 1,
   attempt: null,
+  history: [],
   ...over,
 });
 
@@ -67,13 +69,21 @@ const locked = (): KnowledgeTestResponse =>
   });
 
 const attempt = (): SubmitAttemptResponse['attempt'] => ({
+  attemptNumber: 1,
   score: 1,
   total: 2,
   submittedAt: '2026-09-14T10:00:00.000Z',
+  summary: {
+    verdict: 'The wrong answers turn on one principle.',
+    missed: [{ principle: 'product', questionIds: [902], guidance: 'Re-read Principle 3.' }],
+    mastered: ['public'],
+  },
   answers: [
     {
       questionId: 901,
+      prompt: 'Disclose or ship?',
       selectedOption: 'b',
+      selectedText: 'Disclose',
       correctOption: 'b',
       correct: true,
       principle: 'public',
@@ -83,7 +93,9 @@ const attempt = (): SubmitAttemptResponse['attempt'] => ({
     },
     {
       questionId: 902,
+      prompt: 'Rotate and close?',
       selectedOption: 'b',
+      selectedText: 'Close the ticket',
       correctOption: 'a',
       correct: false,
       principle: 'product',
@@ -157,6 +169,39 @@ describe('the knowledge test store', () => {
     expect(getKnowledgeTest).toHaveBeenCalledTimes(2);
     expect(store.attempt?.total).toBe(2);
     expect(store.error).toBe('Already submitted.');
+  });
+
+  it('asks for the next sitting on a retake, rather than reusing the one it holds', async () => {
+    getKnowledgeTest.mockResolvedValueOnce(test({ attempt: attempt() })).mockResolvedValueOnce(
+      test({
+        attemptNumber: 2,
+        questions: [
+          {
+            id: 903,
+            prompt: 'A different question entirely.',
+            orderIndex: 0,
+            options: [
+              { id: 'a', text: 'One' },
+              { id: 'b', text: 'Two' },
+            ],
+          },
+        ],
+        attempt: attempt(),
+        history: [
+          { attemptNumber: 1, score: 1, total: 2, submittedAt: '2026-09-14T10:00:00.000Z' },
+        ],
+      }),
+    );
+    const store = useKnowledgeTestStore();
+    await store.fetch();
+
+    await store.retake();
+
+    expect(getKnowledgeTest).toHaveBeenCalledTimes(2);
+    expect(store.test?.attemptNumber).toBe(2);
+    expect(store.test?.questions[0]?.id).toBe(903);
+    // The previous result stays available until the new sitting is submitted.
+    expect(store.attempt?.attemptNumber).toBe(1);
   });
 
   it('drops the attempt when the learner changes', async () => {

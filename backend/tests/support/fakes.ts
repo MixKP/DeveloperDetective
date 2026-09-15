@@ -8,15 +8,15 @@ import type {
   ScenarioContent,
   ScenarioSummaryContent,
 } from '../../src/modules/catalog/index.js';
-import type {
+import {
   Attempt,
-  AttemptRepository,
-  GradedAnswerContent,
-  KnowledgeTestCatalog,
-  KnowledgeTestContent,
-  SelectedOption,
-  TestAnswerKey,
-  TestVariant,
+  type AttemptRepository,
+  type GradedAnswerContent,
+  type KnowledgeTestCatalog,
+  type KnowledgeTestContent,
+  type SelectedOption,
+  type TestAnswerKey,
+  type TestVariant,
 } from '../../src/modules/assessment/index.js';
 import { Investigation } from '../../src/modules/investigation/domain/Investigation.js';
 import type { InvestigationRepository } from '../../src/modules/investigation/application/ports.js';
@@ -251,43 +251,71 @@ export function closedCase(learnerId = LEARNER): Investigation {
 export const TEST_ID = 9;
 export const TEST_Q1 = 901;
 export const TEST_Q2 = 902;
+export const TEST_Q3 = 903;
+export const TEST_Q4 = 904;
+/** One sitting asks two of the four, so a retake has somewhere fresh to go. */
+export const QUESTIONS_PER_ATTEMPT = 2;
 
-const TEST_KEY: Record<
-  number,
-  {
-    correctOption: string;
-    principle: GradedAnswerContent['principle'];
-    clause: string;
-    explanation: string;
-    options: { id: string; text: string; feedback: string }[];
-  }
-> = {
+interface StubQuestion {
+  correctOption: string;
+  principle: GradedAnswerContent['principle'];
+  clause: string;
+  prompt: string;
+  explanation: string;
+  options: { id: string; text: string; feedback: string }[];
+}
+
+const TEST_KEY: Record<number, StubQuestion> = {
   [TEST_Q1]: {
     correctOption: 'b',
     principle: 'public',
     clause: '1.04',
+    prompt: 'Disclose the breach, or wait for the announcement?',
     explanation: 'Disclosure comes before the fix.',
     options: [
-      {
-        id: 'a',
-        text: 'Wait for the announcement.',
-        feedback: 'Breaches Principle 1, clause 1.04.',
-      },
-      { id: 'b', text: 'Disclose it immediately.', feedback: 'Correct. Principle 1, clause 1.04.' },
+      { id: 'a', text: 'Wait for the announcement.', feedback: 'Breaches Principle 1 (Public).' },
+      { id: 'b', text: 'Disclose it immediately.', feedback: 'Correct. Principle 1 (Public).' },
     ],
   },
   [TEST_Q2]: {
     correctOption: 'a',
     principle: 'product',
     clause: '3.10',
+    prompt: 'The key is rotated. What else does the incident need?',
     explanation: 'Rotation does not undo the harm already done.',
+    options: [
+      { id: 'a', text: 'Assess what was accessed.', feedback: 'Correct. Principle 3 (Product).' },
+      { id: 'b', text: 'Close the ticket.', feedback: 'Breaches Principle 3 (Product).' },
+    ],
+  },
+  [TEST_Q3]: {
+    correctOption: 'a',
+    principle: 'public',
+    clause: '1.03',
+    prompt: 'Sign off a release with a live exposure?',
+    explanation: 'Approval is withheld while a known danger is live.',
+    options: [
+      { id: 'a', text: 'Withhold approval.', feedback: 'Correct. Principle 1 (Public).' },
+      { id: 'b', text: 'Ship it behind a beta label.', feedback: 'Breaches Principle 1 (Public).' },
+    ],
+  },
+  [TEST_Q4]: {
+    correctOption: 'b',
+    principle: 'product',
+    clause: '3.13',
+    prompt: 'Restore production data into staging to reproduce a bug?',
+    explanation: 'Debugging needs the shape of the data, not the people in it.',
     options: [
       {
         id: 'a',
-        text: 'Assess what was accessed.',
-        feedback: 'Correct. Principle 3, clause 3.10.',
+        text: 'Restore it and delete it after.',
+        feedback: 'Breaches Principle 3 (Product).',
       },
-      { id: 'b', text: 'Close the ticket.', feedback: 'Breaches Principle 3, clause 3.10.' },
+      {
+        id: 'b',
+        text: 'Generate data with the failing shape.',
+        feedback: 'Correct. Principle 3 (Product).',
+      },
     ],
   },
 };
@@ -297,13 +325,29 @@ const KNOWLEDGE_TEST: KnowledgeTestContent = {
   slug: 'core-professional-ethics',
   variant: 'post',
   title: 'Core professional ethics',
-  description: 'Two questions, submitted once.',
-  questions: [TEST_Q1, TEST_Q2].map((id, index) => ({
+  description: 'Two questions a sitting, drawn from four.',
+  questionsPerAttempt: QUESTIONS_PER_ATTEMPT,
+  guidance: {
+    public: 'Re-read Principle 1: disclosure comes before the schedule.',
+    product: 'Re-read Principle 3: the deliverable includes the data it touches.',
+  },
+  questions: [TEST_Q1, TEST_Q2, TEST_Q3, TEST_Q4].map((id, index) => ({
     id,
-    prompt: TEST_KEY[id]!.explanation,
+    prompt: TEST_KEY[id]!.prompt,
     orderIndex: index,
+    principle: TEST_KEY[id]!.principle,
     options: TEST_KEY[id]!.options.map((o) => ({ id: o.id, text: o.text })),
   })),
+};
+
+/** The option this stub grades as correct, for a test that wants to score a sitting. */
+export const correctOptionFor = (questionId: number): string =>
+  TEST_KEY[questionId]?.correctOption ?? 'a';
+
+/** A real option that is not the right one — a wrong answer, not an unanswered question. */
+export const wrongOptionFor = (questionId: number): string => {
+  const question = TEST_KEY[questionId];
+  return question?.options.find((o) => o.id !== question.correctOption)?.id ?? 'a';
 };
 
 export class StubKnowledgeTestCatalog implements KnowledgeTestCatalog {
@@ -322,7 +366,9 @@ export class StubTestAnswerKey implements TestAnswerKey {
       return [
         {
           questionId: selection.questionId,
+          prompt: entry.prompt,
           selectedOption: selection.optionId,
+          selectedText: chosen?.text ?? '',
           correctOption: entry.correctOption,
           correct: entry.correctOption === selection.optionId,
           principle: entry.principle,
@@ -336,18 +382,24 @@ export class StubTestAnswerKey implements TestAnswerKey {
 }
 
 export class InMemoryAttemptRepository implements AttemptRepository {
-  private readonly rows = new Map<string, Attempt>();
+  private readonly rows: Attempt[] = [];
 
-  private key(learnerId: string, testId: number) {
-    return `${learnerId}:${testId}`;
-  }
-
-  async find(learnerId: string, testId: number): Promise<Attempt | null> {
-    return this.rows.get(this.key(learnerId, testId)) ?? null;
+  async history(learnerId: string, testId: number): Promise<Attempt[]> {
+    return this.rows
+      .filter((row) => row.learnerId === learnerId && row.testId === testId)
+      .sort((a, b) => a.attemptNumber - b.attemptNumber);
   }
 
   async save(attempt: Attempt): Promise<void> {
-    this.rows.set(this.key(attempt.learnerId, attempt.testId), attempt);
+    const clash = this.rows.some(
+      (row) =>
+        row.learnerId === attempt.learnerId &&
+        row.testId === attempt.testId &&
+        row.attemptNumber === attempt.attemptNumber,
+    );
+    // The same refusal the unique constraint produces, so tests see the real rule.
+    if (clash) Attempt.rejectDuplicateSitting();
+    this.rows.push(attempt);
   }
 }
 

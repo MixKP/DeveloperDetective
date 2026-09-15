@@ -22,6 +22,7 @@ export class DrizzleKnowledgeTestCatalog implements KnowledgeTestCatalog {
         prompt: knowledgeQuestions.prompt,
         options: knowledgeQuestions.options,
         orderIndex: knowledgeQuestions.orderIndex,
+        principle: knowledgeQuestions.principle,
       })
       .from(knowledgeQuestions)
       .where(eq(knowledgeQuestions.testId, test.id))
@@ -33,6 +34,8 @@ export class DrizzleKnowledgeTestCatalog implements KnowledgeTestCatalog {
       variant: test.variant,
       title: test.title,
       description: test.description,
+      questionsPerAttempt: test.questionsPerAttempt,
+      guidance: test.guidance,
       // The feedback on each option names the principle behind the right answer,
       // so it is dropped here rather than filtered downstream — this projection is
       // the only shape of a question that ever leaves the catalog.
@@ -40,6 +43,7 @@ export class DrizzleKnowledgeTestCatalog implements KnowledgeTestCatalog {
         id: row.id,
         prompt: row.prompt,
         orderIndex: row.orderIndex,
+        principle: row.principle,
         options: row.options.map((option) => ({ id: option.id, text: option.text })),
       })),
     };

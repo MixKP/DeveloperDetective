@@ -10,18 +10,24 @@ export interface AttemptAnswer {
 export interface AttemptSnapshot {
   learnerId: string;
   testId: number;
+  attemptNumber: number;
   answers: AttemptAnswer[];
   submittedAt: Date;
 }
 
 /**
- * One learner's single sitting of one knowledge test. A post-test measures what
- * someone knows at a moment, so it is submitted whole and never retaken — the
+ * One sitting of one knowledge test by one learner. A sitting measures what
+ * someone knew at a moment, so it is submitted whole and never edited — the
  * aggregate has no mutator, only a factory that grades and closes it at once.
+ *
+ * Sittings are numbered rather than unique: a learner may sit the test again, and
+ * the next sitting is a new attempt against a different draw (ADR 0010), not a
+ * correction of this one.
  */
 export class Attempt {
   readonly learnerId: string;
   readonly testId: number;
+  readonly attemptNumber: number;
   readonly submittedAt: Date;
 
   private readonly answers: AttemptAnswer[];
@@ -29,6 +35,7 @@ export class Attempt {
   private constructor(snapshot: AttemptSnapshot) {
     this.learnerId = snapshot.learnerId;
     this.testId = snapshot.testId;
+    this.attemptNumber = snapshot.attemptNumber;
     this.answers = [...snapshot.answers];
     this.submittedAt = snapshot.submittedAt;
   }
@@ -41,6 +48,7 @@ export class Attempt {
   static submit(
     learnerId: string,
     testId: number,
+    attemptNumber: number,
     answers: AttemptAnswer[],
     questionIds: readonly number[],
     now: Date = new Date(),
@@ -65,17 +73,22 @@ export class Attempt {
       );
     }
 
-    return new Attempt({ learnerId, testId, answers, submittedAt: now });
+    return new Attempt({ learnerId, testId, attemptNumber, answers, submittedAt: now });
   }
 
   static fromSnapshot(snapshot: AttemptSnapshot): Attempt {
     return new Attempt(snapshot);
   }
 
-  static rejectRetake(): never {
+  /**
+   * A sitting whose number is already recorded. Two tabs submitting the same draw
+   * both derive the same number, and the unique constraint refuses the second —
+   * this is how that refusal reaches the learner as a rule rather than a 500.
+   */
+  static rejectDuplicateSitting(): never {
     throw new AttemptRuleViolation(
       'ATTEMPT_ALREADY_SUBMITTED',
-      'This test has already been submitted and cannot be retaken.',
+      'That sitting has already been recorded. Reload for a fresh set of questions.',
     );
   }
 
@@ -83,6 +96,7 @@ export class Attempt {
     return {
       learnerId: this.learnerId,
       testId: this.testId,
+      attemptNumber: this.attemptNumber,
       answers: [...this.answers],
       submittedAt: this.submittedAt,
     };

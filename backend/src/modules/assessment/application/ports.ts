@@ -34,6 +34,7 @@ export interface CaseProgress {
 }
 
 export interface AttemptRepository {
-  find(learnerId: string, testId: number): Promise<Attempt | null>;
+  /** Every sitting this learner has submitted for this test, oldest first. */
+  history(learnerId: string, testId: number): Promise<Attempt[]>;
   save(attempt: Attempt): Promise<void>;
 }

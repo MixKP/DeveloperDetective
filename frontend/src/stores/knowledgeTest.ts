@@ -59,6 +59,14 @@ export const useKnowledgeTestStore = defineStore('knowledgeTest', () => {
     }
   }
 
+  /**
+   * A retake: the server deals the next sitting from the same bank, so all the
+   * client has to do is ask for the test again (ADR 0010).
+   */
+  async function retake() {
+    await fetch(true);
+  }
+
   /** The attempt belongs to a learner, not to the browser. */
   function reset() {
     test.value = null;
@@ -76,6 +84,7 @@ export const useKnowledgeTestStore = defineStore('knowledgeTest', () => {
     error,
     fetch,
     submit,
+    retake,
     reset,
   };
 });

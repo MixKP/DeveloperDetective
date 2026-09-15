@@ -8,6 +8,8 @@ import type {
   KnowledgeTestCatalog,
   TestAnswerKey,
 } from './ports.js';
+import { resultOf } from './resultOf.js';
+import { sittingFor } from './sitting.js';
 
 export class SubmitAttempt {
   constructor(
@@ -34,38 +36,29 @@ export class SubmitAttempt {
     ]);
     Eligibility.assess(completed, total).requireOpen();
 
-    if (await this.attempts.find(learnerId, test.id)) Attempt.rejectRetake();
+    const history = await this.attempts.history(learnerId, test.id);
+    const sitting = sittingFor(learnerId, test, history);
 
     const graded = await this.answerKey.grade(test.id, payload.responses);
     const byQuestion = new Map(graded.map((answer) => [answer.questionId, answer]));
 
-    // Built from what the learner sent rather than from what graded, so a response
-    // naming a question this test does not ask reaches the aggregate and is refused
-    // there — grading it away silently would report it as an unanswered question.
+    // Built from what the learner sent and checked against the sitting they were
+    // dealt, so an answer naming a question this draw did not ask is refused rather
+    // than graded — a retake cannot be steered back onto questions already seen.
     const attempt = Attempt.submit(
       learnerId,
       test.id,
+      sitting.attemptNumber,
       payload.responses.map((response) => ({
         questionId: response.questionId,
         selectedOption: response.optionId,
         correct: byQuestion.get(response.questionId)?.correct ?? false,
       })),
-      test.questions.map((question) => question.id),
+      sitting.questionIds,
     );
 
     await this.attempts.save(attempt);
 
-    const order = test.questions.map((question) => question.id);
-
-    return {
-      attempt: {
-        score: attempt.score.value,
-        total: attempt.score.total,
-        submittedAt: attempt.submittedAt.toISOString(),
-        answers: graded
-          .slice()
-          .sort((a, b) => order.indexOf(a.questionId) - order.indexOf(b.questionId)),
-      },
-    };
+    return { attempt: await resultOf(this.answerKey, test, attempt) };
   }
 }

@@ -21,7 +21,10 @@ export type TestQuestionView = z.infer<typeof testQuestionViewSchema>;
 
 export const gradedAnswerSchema = z.object({
   questionId: z.number().int(),
+  /** Carried with the verdict so a result stays readable after the next draw. */
+  prompt: z.string(),
   selectedOption: z.string(),
+  selectedText: z.string(),
   correctOption: z.string(),
   correct: z.boolean(),
   /** Which principle the chosen option honoured or breached, and the clause behind it. */
@@ -33,13 +36,41 @@ export const gradedAnswerSchema = z.object({
 });
 export type GradedAnswer = z.infer<typeof gradedAnswerSchema>;
 
+/**
+ * What to do next, rather than what went wrong. A missed principle names the
+ * guidance authored for it; a mastered one is what the learner can stop revising.
+ */
+export const attemptSummarySchema = z.object({
+  verdict: z.string(),
+  missed: z.array(
+    z.object({
+      principle: ethicsPrincipleSchema,
+      questionIds: z.array(z.number().int()),
+      guidance: z.string(),
+    }),
+  ),
+  mastered: z.array(ethicsPrincipleSchema),
+});
+export type AttemptSummary = z.infer<typeof attemptSummarySchema>;
+
 export const attemptResultSchema = z.object({
+  attemptNumber: z.number().int().positive(),
   score: z.number().int().nonnegative(),
   total: z.number().int().positive(),
   submittedAt: z.string(),
   answers: z.array(gradedAnswerSchema),
+  summary: attemptSummarySchema,
 });
 export type AttemptResult = z.infer<typeof attemptResultSchema>;
+
+/** One line per sitting, oldest first — the record the course reports on. */
+export const attemptRecordSchema = z.object({
+  attemptNumber: z.number().int().positive(),
+  score: z.number().int().nonnegative(),
+  total: z.number().int().positive(),
+  submittedAt: z.string(),
+});
+export type AttemptRecord = z.infer<typeof attemptRecordSchema>;
 
 /**
  * Why the test is open, or is not. The post-test measures what the platform taught, so
@@ -59,11 +90,18 @@ export const knowledgeTestResponseSchema = z.object({
   variant: testVariantSchema,
   title: z.string(),
   description: z.string(),
-  /** Empty while the test is locked: the questions are withheld, not merely hidden. */
+  /**
+   * The draw for the next sitting, in the order it should be asked, with each
+   * question's options already shuffled for this learner. Empty while the test is
+   * locked: the questions are withheld, not merely hidden.
+   */
   questions: z.array(testQuestionViewSchema),
   eligibility: testEligibilitySchema,
-  /** The learner's one attempt, or null if they have not taken it yet. */
+  /** Which sitting the questions above belong to. 1 before anything is submitted. */
+  attemptNumber: z.number().int().positive(),
+  /** The most recent sitting's result, or null if there is none yet. */
   attempt: attemptResultSchema.nullable(),
+  history: z.array(attemptRecordSchema),
 });
 export type KnowledgeTestResponse = z.infer<typeof knowledgeTestResponseSchema>;
 

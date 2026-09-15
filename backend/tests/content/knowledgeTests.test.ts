@@ -56,6 +56,37 @@ describe('authored knowledge tests', () => {
       }
     });
 
+    it('holds enough questions per principle for a retake to differ', () => {
+      if (!parsed.success) return;
+      const perPrinciple = new Map<string, number>();
+      for (const question of parsed.data.questions) {
+        perPrinciple.set(question.principle, (perPrinciple.get(question.principle) ?? 0) + 1);
+      }
+      for (const [principle, count] of perPrinciple) {
+        expect(count, `"${principle}" has only ${count} question(s) to draw from`).toBeGreaterThan(
+          1,
+        );
+      }
+    });
+
+    it('authors guidance for every principle it can mark wrong', () => {
+      if (!parsed.success) return;
+      for (const question of parsed.data.questions) {
+        expect(
+          parsed.data.guidance[question.principle],
+          `no guidance for "${question.principle}"`,
+        ).toBeTruthy();
+      }
+    });
+
+    it('asks a sitting the bank can actually deal', () => {
+      if (!parsed.success) return;
+      const perSitting = parsed.data.questionsPerAttempt ?? parsed.data.questions.length;
+      expect(perSitting).toBeLessThanOrEqual(parsed.data.questions.length);
+      // A sitting is meant to cover the Code, so it asks at least one per principle.
+      expect(perSitting).toBeGreaterThanOrEqual(PRINCIPLES.length);
+    });
+
     it('does not park the correct answer in one position', () => {
       if (!parsed.success) return;
       const positions = parsed.data.questions.map((q) =>

@@ -135,8 +135,9 @@ Three domain modules, not six:
 - **`investigation`** — the learner's run: grading, hints, scoring, reveal, the ethical
   decision. Owns every learner-facing endpoint, because every one of them is gated by run
   state.
-- **`assessment`** — the knowledge test: the post-test a learner sits once, and the record
-  of what they answered ([ADR 0009](docs/adr/0009-assessment-is-its-own-module.md)).
+- **`assessment`** — the knowledge test: the post-test, the draw each sitting asks, and the
+  record of what was answered ([ADR 0009](docs/adr/0009-assessment-is-its-own-module.md),
+  [ADR 0010](docs/adr/0010-the-post-test-can-be-retaken.md)).
 
 `grading`, `progress` and `ethics` were folded into `investigation` because they mutate the
 same aggregate in the same operation. Splitting them would mean a distributed transaction
@@ -173,7 +174,7 @@ rule already said yes:
 | the debrief               | every question is solved                      |
 | ethical quality + outcome | the learner has committed to a choice         |
 | post-test questions       | the learner has closed at least one case      |
-| post-test key + feedback  | the learner has submitted their one attempt   |
+| post-test key + feedback  | the learner has submitted that sitting        |
 
 `tests/api/answer-key.contract.test.ts` fails the build if any of it leaks, by field name
 _and_ by value.
@@ -248,8 +249,8 @@ pressure to do the easy thing:
 
 | Command                    | Does                                                                        |
 | -------------------------- | --------------------------------------------------------------------------- |
-| `npm test`                 | 188 tests — domain, application, API, content, stores. No database required |
-| `npm run test:integration` | 26 tests — Drizzle repositories and the seed against real PostgreSQL        |
+| `npm test`                 | 214 tests — domain, application, API, content, stores. No database required |
+| `npm run test:integration` | 28 tests — Drizzle repositories and the seed against real PostgreSQL        |
 | `npm run test:e2e`         | 12 tests — the full journey in a real browser (Playwright)                  |
 | `npm run test:all`         | All three levels                                                            |
 | `npm run typecheck`        | All three workspaces                                                        |
@@ -336,8 +337,10 @@ curl -s -X POST -H 'Content-Type: application/json' \
 
 Then walk the flow in the browser: dashboard → brief → investigate → quiz (take a hint, miss
 once) → debrief → ethical choice. The score should read **75**. The **Post-test** button in
-the top bar then opens the ethics post-test — locked until that first case was closed — and
-it can be sat once.
+the top bar then opens the ethics post-test — locked until that first case was closed. It
+asks one question per principle of the Code, reports which principles the wrong answers
+turned on, and can be sat again against a different draw
+([ADR 0010](docs/adr/0010-the-post-test-can-be-retaken.md)).
 
 ---
 

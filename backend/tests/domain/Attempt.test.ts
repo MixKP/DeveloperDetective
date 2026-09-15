@@ -12,10 +12,11 @@ const answer = (questionId: number, correct: boolean) => ({
   correct,
 });
 
-const submitAll = (correctness: boolean[]) =>
+const submitAll = (correctness: boolean[], attemptNumber = 1) =>
   Attempt.submit(
     LEARNER,
     TEST_ID,
+    attemptNumber,
     QUESTIONS.map((id, index) => answer(id, correctness[index] ?? false)),
     QUESTIONS,
   );
@@ -31,7 +32,7 @@ describe('Attempt', () => {
   });
 
   it('refuses a partial submission instead of counting the gaps as wrong', () => {
-    expect(() => Attempt.submit(LEARNER, TEST_ID, [answer(901, true)], QUESTIONS)).toThrowError(
+    expect(() => Attempt.submit(LEARNER, TEST_ID, 1, [answer(901, true)], QUESTIONS)).toThrowError(
       AttemptRuleViolation,
     );
   });
@@ -39,7 +40,7 @@ describe('Attempt', () => {
   it('refuses an answer to a question the test does not ask', () => {
     const rogue = [...QUESTIONS.map((id) => answer(id, true)), answer(999, true)];
     try {
-      Attempt.submit(LEARNER, TEST_ID, rogue, QUESTIONS);
+      Attempt.submit(LEARNER, TEST_ID, 1, rogue, QUESTIONS);
       expect.unreachable('a rogue question id should be refused');
     } catch (error) {
       expect((error as AttemptRuleViolation).code).toBe('UNKNOWN_QUESTION');
@@ -49,25 +50,31 @@ describe('Attempt', () => {
   it('treats a duplicated answer as a missing one', () => {
     const duplicated = [answer(901, true), answer(901, true), answer(902, true)];
     try {
-      Attempt.submit(LEARNER, TEST_ID, duplicated, QUESTIONS);
+      Attempt.submit(LEARNER, TEST_ID, 1, duplicated, QUESTIONS);
       expect.unreachable('a duplicate answer leaves a question unanswered');
     } catch (error) {
       expect((error as AttemptRuleViolation).code).toBe('ATTEMPT_INCOMPLETE');
     }
   });
 
-  it('names a retake as such, so the caller can say why it was refused', () => {
+  it('numbers the sitting it belongs to', () => {
+    expect(submitAll([true, true, true], 3).attemptNumber).toBe(3);
+  });
+
+  it('names a duplicated sitting as such, so the caller can say why it was refused', () => {
     try {
-      Attempt.rejectRetake();
+      Attempt.rejectDuplicateSitting();
+      expect.unreachable('rejectDuplicateSitting always throws');
     } catch (error) {
       expect((error as AttemptRuleViolation).code).toBe('ATTEMPT_ALREADY_SUBMITTED');
     }
   });
 
   it('survives a round trip through its snapshot', () => {
-    const original = submitAll([true, true, false]);
+    const original = submitAll([true, true, false], 2);
     const restored = Attempt.fromSnapshot(original.toSnapshot());
     expect(restored.score.value).toBe(original.score.value);
+    expect(restored.attemptNumber).toBe(2);
     expect(restored.submittedAt).toEqual(original.submittedAt);
   });
 });

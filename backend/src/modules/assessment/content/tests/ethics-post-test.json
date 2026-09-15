@@ -2,7 +2,18 @@
   "slug": "core-professional-ethics",
   "variant": "post",
   "title": "Core professional ethics",
-  "description": "Ten questions on the responsibilities an engineer carries when they find a defect, based on the IEEE-CS/ACM Software Engineering Code of Ethics and Professional Practice. Answer every question, then submit once.",
+  "description": "Questions on the responsibilities an engineer carries when they find a defect, based on the IEEE-CS/ACM Software Engineering Code of Ethics and Professional Practice. Each sitting draws one question per principle from a larger bank, so a retake asks a different set.",
+  "questionsPerAttempt": 8,
+  "guidance": {
+    "public": "Re-read Principle 1. The recurring test is whether the people who bear the risk know about it: disclosure comes before the fix, before the schedule and before the announcement, and approval is something you withhold while a known danger is live. When you are unsure, ask who carries the consequence and whether they have been told.",
+    "client-and-employer": "Re-read Principle 2. Loyalty to a client or employer means telling them what is true about the software they are paying for, keeping what you learn inside the engagement, and using their property only as authorised. Authority above you never transfers responsibility for a statement you personally make.",
+    "product": "Re-read Principle 3. Quality is what the deliverable actually contains — adequate testing, documentation that reaches the people who need it, and data used only for what it was properly obtained for. Ask what someone operating this system a year from now would need to know, and whether the data in your environment belongs there.",
+    "judgement": "Re-read Principle 4. Independence has to be visible to be worth anything: disclose interests rather than privately resisting them, keep evaluations objective when the answer is inconvenient, and never let a technical statement carry a financial or commercial falsehood. A metric is evidence about behaviour, not permission for a design.",
+    "management": "Re-read Principle 5. A manager owns the conditions under which risk becomes visible: realistic estimates, scope traded openly rather than schedules invented, work assigned with the support it needs, and no penalty for raising a concern. Management may never ask an engineer to act against the Code.",
+    "profession": "Re-read Principle 6. The profession's standing rests on engineers owning their errors and reporting significant violations to the people who can act. Accuracy about what software does — including what it does badly — is part of the duty, and legal compliance is a floor rather than a defence.",
+    "colleagues": "Re-read Principle 7. Colleagues are owed credit for their work, reviews that are candid and objective rather than deferential, and help to develop. Feedback can be direct without being public, and correcting a defect should leave the person more capable, not merely corrected.",
+    "self": "Re-read Principle 8. Participation in the profession is a duty to keep learning: know the limits of your competence and say so, treat a repeating defect class as a signal about your practice, and judge technical claims on their content rather than on who raised them."
+  },
   "questions": [
     {
       "principle": "public",
@@ -293,6 +304,412 @@
       ],
       "correctOption": "b",
       "explanation": "Escalating and deferring are different acts. You are expected to raise the conflict, and you remain responsible for your own part in what ships after the answer comes back."
+    },
+    {
+      "principle": "public",
+      "clause": "1.03",
+      "prompt": "The release is signed off by whoever ships it. You know an unauthenticated endpoint exposes other customers' invoice totals, and the plan is to ship behind a \"beta\" label and fix it in the next cycle. What does approving this release require of you?",
+      "options": [
+        {
+          "id": "a",
+          "text": "Approve it: a beta label tells users the software is unfinished, so they accept the risk.",
+          "feedback": "Breaches Principle 1 (Public) — a label is not consent. The people whose invoice totals leak are not the ones reading the beta notice, and they never agreed to anything."
+        },
+        {
+          "id": "b",
+          "text": "Approve it but write your objection in the ticket, so the record shows you disagreed.",
+          "feedback": "Breaches Principle 1 (Public). A documented objection protects you, not the users; the Code asks you to withhold approval, not to pre-annotate the incident report."
+        },
+        {
+          "id": "c",
+          "text": "Withhold approval while the endpoint is open, and say plainly what the exposure is and who it affects.",
+          "feedback": "Correct. Principle 1 (Public) — approve software only when you have well-founded reason to believe it is safe. Withholding sign-off is the one action that actually keeps the exposure out of production."
+        },
+        {
+          "id": "d",
+          "text": "Approve it and add monitoring, so you will know if anyone actually exploits it.",
+          "feedback": "Breaches Principle 1 (Public) — detection is not protection. Monitoring tells you how much harm was done rather than preventing it, and the harm here is other people's financial data."
+        }
+      ],
+      "correctOption": "c",
+      "explanation": "Sign-off is a professional judgement about safety, not a scheduling formality. Naming the risk while withholding approval also gives the people above you a real decision to make, instead of the appearance of one."
+    },
+    {
+      "principle": "client-and-employer",
+      "clause": "2.05",
+      "prompt": "Work on a client's incident gave you a detailed picture of how their fraud checks are bypassed. An engineer at another company — a friend, working on a similar system — asks you what you learned. What may you share?",
+      "options": [
+        {
+          "id": "a",
+          "text": "The full detail: sharing defensive knowledge makes the whole industry safer.",
+          "feedback": "Breaches Principle 2 (Client and Employer) — keep confidential the information you gain in the course of professional work. Knowledge obtained on a client's system is not yours to redistribute, however useful it would be."
+        },
+        {
+          "id": "b",
+          "text": "Only the general class of weakness, with nothing that identifies the client or their specific implementation.",
+          "feedback": "Correct. Principle 2 (Client and Employer) — the duty of confidence covers what you learned about this client, not the general engineering lesson, which you are free to carry into your own practice."
+        },
+        {
+          "id": "c",
+          "text": "Everything except the client's name, since anonymising it removes the confidentiality problem.",
+          "feedback": "Breaches Principle 2 (Client and Employer). A description detailed enough to be useful is usually detailed enough to identify the system, and the duty is about the information, not about whether you attached a name to it."
+        },
+        {
+          "id": "d",
+          "text": "Nothing at all, including the general lesson, since it all came from the engagement.",
+          "feedback": "Breaches nothing, but it gives up something the Code does not ask you to give up. Principle 2 protects the client's information, not your own professional learning — and Principle 6 asks you to advance the profession with it."
+        }
+      ],
+      "correctOption": "b",
+      "explanation": "Confidentiality is about the client's particulars, not about the craft. The test is whether what you say could be used against this client's system: if it could, it stays inside the engagement."
+    },
+    {
+      "principle": "client-and-employer",
+      "clause": "2.03",
+      "prompt": "A rate-limiting module you wrote for a previous employer would save weeks on your current project. You still have a copy in a personal repository. What does the Code permit?",
+      "options": [
+        {
+          "id": "a",
+          "text": "Use it: you wrote every line of it, so the work is yours to reuse.",
+          "feedback": "Breaches Principle 2 (Client and Employer) — use the property of a client or employer only in ways properly authorised. Authorship is not ownership when the work was done for hire."
+        },
+        {
+          "id": "b",
+          "text": "Use it after renaming the identifiers and reformatting it, so it is no longer the same code.",
+          "feedback": "Breaches Principle 2 (Client and Employer), and adds concealment to the misuse. Obscuring the origin of the code makes it harder for anyone to notice the problem, which is the opposite of what the Code asks."
+        },
+        {
+          "id": "c",
+          "text": "Rebuild it from your own understanding of the technique, or get written permission to reuse the original.",
+          "feedback": "Correct. Principle 2 (Client and Employer) — the knowledge in your head travels with you; the artefact you were paid to produce does not, unless its owner says so."
+        },
+        {
+          "id": "d",
+          "text": "Use it and tell your current employer where it came from, so the decision is theirs.",
+          "feedback": "Breaches Principle 2 (Client and Employer). Disclosure to the party who benefits is not authorisation from the party whose property it is — the permission has to come from the former employer."
+        }
+      ],
+      "correctOption": "c",
+      "explanation": "The line the Code draws is between what you learned and what you produced under someone else's ownership. Rebuilding from understanding is honest reuse; copying the artefact is taking something that was not offered."
+    },
+    {
+      "principle": "product",
+      "clause": "3.13",
+      "prompt": "Reproducing a billing bug is hard with synthetic data, so a colleague proposes restoring last night's production database — real customers, real addresses, real card metadata — into the staging environment the whole team can reach. What is the right response?",
+      "options": [
+        {
+          "id": "a",
+          "text": "Agree, but delete the data as soon as the bug is reproduced.",
+          "feedback": "Breaches Principle 3 (Product). The exposure happens the moment real data lands in an environment with weaker access control; deleting it afterwards shortens the window without closing it."
+        },
+        {
+          "id": "b",
+          "text": "Agree if staging is not reachable from the public internet.",
+          "feedback": "Breaches Principle 3 (Product) — a network boundary is not a lawful basis for processing personal data, and the people whose addresses are in that dump did not consent to a debugging copy of them."
+        },
+        {
+          "id": "c",
+          "text": "Refuse the copy and reproduce the bug from anonymised or generated data that preserves the shape of the failing records.",
+          "feedback": "Correct. Principle 3 (Product) — use only data acquired for a legitimate purpose, and respect the privacy of the people the data describes. The failing shape is what you need, not the identities attached to it."
+        },
+        {
+          "id": "d",
+          "text": "Agree, since the team is already trusted with production access anyway.",
+          "feedback": "Breaches Principle 3 (Product). Production access is granted narrowly and audited; a staging copy is neither, so the two are not equivalent no matter who is on the team."
+        }
+      ],
+      "correctOption": "c",
+      "explanation": "Debugging needs the structure of the data, not the people in it. Treating a production restore as a convenience is how personal data ends up in environments nobody is auditing."
+    },
+    {
+      "principle": "product",
+      "clause": "3.11",
+      "prompt": "You ship a fix under time pressure. It closes the vulnerability but relies on a workaround: a specific header must be set by the reverse proxy, or the protection silently does nothing. The change is merged and the incident is closed. What else does the Code require?",
+      "options": [
+        {
+          "id": "a",
+          "text": "Nothing further — the vulnerability is closed and the code speaks for itself.",
+          "feedback": "Breaches Principle 3 (Product) — ensure adequate documentation. A protection that fails silently when a deployment detail changes is precisely the kind of thing code does not say for itself."
+        },
+        {
+          "id": "b",
+          "text": "Document the dependency where the people who operate and change the proxy will see it, and make the failure loud rather than silent.",
+          "feedback": "Correct. Principle 3 (Product) — documentation is part of the deliverable, and a security control with an undocumented precondition is one deployment change away from being no control at all."
+        },
+        {
+          "id": "c",
+          "text": "Add a comment in the source file, which is where an engineer would look.",
+          "feedback": "Breaches Principle 3 (Product) in practice. The person who reconfigures the proxy in six months is not reading that file; documentation has to reach the people whose actions can break the assumption."
+        },
+        {
+          "id": "d",
+          "text": "Raise a follow-up ticket to replace the workaround, and leave documenting it to whoever picks it up.",
+          "feedback": "Breaches Principle 3 (Product). A backlog item is not documentation, and the gap is live for everyone operating the system in the meantime."
+        }
+      ],
+      "correctOption": "b",
+      "explanation": "A fix that only works under an unstated condition is a fix with a hidden expiry date. Writing the condition down — and making a violated assumption fail loudly — is what turns it into something the next engineer can maintain."
+    },
+    {
+      "principle": "judgement",
+      "clause": "4.01",
+      "prompt": "A consent flow that pre-ticks every optional data-sharing box measures well: opt-in rates triple and no metric gets worse. You are asked for your technical recommendation. What does professional judgement require?",
+      "options": [
+        {
+          "id": "a",
+          "text": "Recommend it — the numbers are unambiguous, and the ethics of the design are a product decision, not yours.",
+          "feedback": "Breaches Principle 4 (Judgement) — temper technical judgements by the need to support and maintain human values. Handing the value question to someone else is itself a judgement, and the Code does not let you make it silently."
+        },
+        {
+          "id": "b",
+          "text": "Recommend it with a note that some users may be unhappy, and let the data settle it.",
+          "feedback": "Breaches Principle 4 (Judgement). Framing manufactured consent as a satisfaction risk understates it: the metric improved because the choice was taken away, which is the thing to report."
+        },
+        {
+          "id": "c",
+          "text": "Report that the lift comes from consent people did not actually give, and recommend a design where the number reflects a real choice.",
+          "feedback": "Correct. Principle 4 (Judgement) — your technical judgement carries the human values the measurement cannot see, and a number produced by removing a choice is not evidence that users wanted the outcome."
+        },
+        {
+          "id": "d",
+          "text": "Refuse to give any recommendation, since the decision is an ethical one rather than a technical one.",
+          "feedback": "Breaches Principle 4 (Judgement) by abstention. Withholding the analysis leaves the decision to be made on the metric alone, which is exactly the outcome your judgement was needed to prevent."
+        }
+      ],
+      "correctOption": "c",
+      "explanation": "The Code treats technical judgement as inseparable from what the technique does to people. An engineer's contribution here is to say plainly what the number measures — a choice removed, not a preference expressed."
+    },
+    {
+      "principle": "judgement",
+      "clause": "4.04",
+      "prompt": "Your consultancy bills the client by the hour. Your manager asks you to sign off a timesheet that books forty hours to a security review you spent eight hours on, explaining that the extra time is \"absorbed overhead the client agreed to in principle\". What do you do?",
+      "options": [
+        {
+          "id": "a",
+          "text": "Sign it — how the firm allocates its overhead is a commercial matter above your level.",
+          "feedback": "Breaches Principle 4 (Judgement) — do not engage in deceptive financial practices. Your signature attests to hours worked, and the deception is the thing being asked of you personally."
+        },
+        {
+          "id": "b",
+          "text": "Sign it, but keep your own record of the real hours in case the discrepancy is ever questioned.",
+          "feedback": "Breaches Principle 4 (Judgement). A private record does not undo a false attestation; it documents that you knew it was false when you made it."
+        },
+        {
+          "id": "c",
+          "text": "Refuse to sign, record the hours you actually worked, and ask for the overhead to be billed as overhead.",
+          "feedback": "Correct. Principle 4 (Judgement) — the firm may bill overhead openly, and the Code's objection is to disguising it as work performed. Refusing the false line and offering the honest one addresses both."
+        },
+        {
+          "id": "d",
+          "text": "Sign it after asking the manager to confirm the client's agreement in writing.",
+          "feedback": "Breaches Principle 4 (Judgement). A written instruction makes the authorship clearer, not the statement truer, and the timesheet still says you worked hours you did not."
+        }
+      ],
+      "correctOption": "c",
+      "explanation": "Timesheets are professional statements of fact. Charging for overhead is a negotiation; describing it as hours worked is a misrepresentation, and the person signing is the one making it."
+    },
+    {
+      "principle": "management",
+      "clause": "5.05",
+      "prompt": "Your director needs the migration delivered in six weeks and asks you, as the engineering lead, to \"commit to the date\". Your own analysis puts it at eleven weeks with no slack and two unknowns. What does the Code require of you as a manager?",
+      "options": [
+        {
+          "id": "a",
+          "text": "Commit to six weeks and manage the risk as it materialises — estimates are always negotiable.",
+          "feedback": "Breaches Principle 5 (Management) — ensure realistic quantitative estimates of cost, scheduling and outcome. An estimate given to satisfy a stakeholder is not an estimate, and the risk it hides lands on the team."
+        },
+        {
+          "id": "b",
+          "text": "Give six weeks for a reduced scope you actually believe in, and say explicitly what is not in it.",
+          "feedback": "Correct. Principle 5 (Management) — the honest move is to change what is promised rather than what is estimated, and to make the trade visible to the person deciding."
+        },
+        {
+          "id": "c",
+          "text": "Give the eleven-week estimate but add that the team will \"try for six\", so nobody is discouraged.",
+          "feedback": "Breaches Principle 5 (Management) in effect. A soft second number is the one that gets planned against, and it reintroduces the schedule you do not believe in without your having to defend it."
+        },
+        {
+          "id": "d",
+          "text": "Ask each engineer to commit to their own piece, so the date is owned by the people doing the work.",
+          "feedback": "Breaches Principle 5 (Management) — this pushes an unrealistic schedule onto individuals with less standing to refuse it. Distributing the pressure is not the same as resolving it."
+        }
+      ],
+      "correctOption": "b",
+      "explanation": "The only honest lever on a date you do not believe in is scope. Naming what will not be delivered keeps the decision with the person asking for the date, which is where it belongs."
+    },
+    {
+      "principle": "management",
+      "clause": "5.03",
+      "prompt": "The authentication rewrite has to start now, and the only engineer free is a capable junior who has never worked on cryptographic code. As the lead, what does the Code ask of you?",
+      "options": [
+        {
+          "id": "a",
+          "text": "Assign it and let them learn on the job — that is how everyone else learned.",
+          "feedback": "Breaches Principle 5 (Management) — assign work only after considering a contribution of education and experience tempered with a desire to further that education. Cryptographic authentication is not the place to discover the gap."
+        },
+        {
+          "id": "b",
+          "text": "Assign it with review by someone who has done this work, explicit checkpoints, and time in the estimate for both.",
+          "feedback": "Correct. Principle 5 (Management) — the Code asks you to develop people as well as deliver software, and supervision is what makes a stretch assignment responsible rather than reckless."
+        },
+        {
+          "id": "c",
+          "text": "Delay the rewrite until a senior engineer is free, since the risk is too high for anyone else.",
+          "feedback": "Defensible on risk, but it is not what the Code asks. Principle 5 pairs suitability with development; an assignment nobody junior may ever take is how a team stays permanently dependent on two people."
+        },
+        {
+          "id": "d",
+          "text": "Assign it to the junior and personally review only the final pull request.",
+          "feedback": "Breaches Principle 5 (Management) in practice. A single review at the end catches the design decisions too late to change them, which is where security-sensitive work goes wrong."
+        }
+      ],
+      "correctOption": "b",
+      "explanation": "Suitability is something a manager can build rather than merely check. The Code's answer to an experience gap on critical work is structured support, not either a silent gamble or an indefinite exclusion."
+    },
+    {
+      "principle": "profession",
+      "clause": "6.13",
+      "prompt": "You discover that a colleague has been marking a compliance test suite as passing by editing the report, and that the last two audit submissions relied on it. They ask you to leave it alone, saying they will fix it before the next cycle. What does the Code require?",
+      "options": [
+        {
+          "id": "a",
+          "text": "Give them the chance to fix it, and report it only if they have not by the next cycle.",
+          "feedback": "Breaches Principle 6 (Profession). The false submissions are already in the hands of people relying on them; a private deadline between you and your colleague does nothing for anyone who acted on that evidence."
+        },
+        {
+          "id": "b",
+          "text": "Report it through the proper channel, and tell your colleague you are doing so.",
+          "feedback": "Correct. Principle 6 (Profession) — report significant violations of the Code to those in a position to act, which here means the people who own the audit evidence. Telling the colleague is candour, not a precondition."
+        },
+        {
+          "id": "c",
+          "text": "Fix the suite quietly yourself, so the next submission is honest and nobody is harmed.",
+          "feedback": "Breaches Principle 6 (Profession). It repairs the test and leaves the false submissions standing — the organisation still believes it passed two audits it did not."
+        },
+        {
+          "id": "d",
+          "text": "Stay out of it: you did not falsify anything, and reporting a colleague is not your role.",
+          "feedback": "Breaches Principle 6 (Profession). The Code makes reporting a duty precisely because the people who notice are usually colleagues, and silence lets falsified evidence stand as the profession's word."
+        }
+      ],
+      "correctOption": "b",
+      "explanation": "Falsified compliance evidence is a harm that continues until it is corrected, because other people are making decisions on it. Reporting is what reaches those decisions; a quiet fix only reaches the code."
+    },
+    {
+      "principle": "colleagues",
+      "clause": "7.03",
+      "prompt": "The incident write-up is yours to present. The actual fix — the insight that found the race condition — came from a colleague who is not in the meeting. How do you present it?",
+      "options": [
+        {
+          "id": "a",
+          "text": "Present it as the team's work, without naming anyone, so nobody is singled out.",
+          "feedback": "Breaches Principle 7 (Colleagues) — credit fully the work of others. Collective phrasing is not neutral when you are the only person in the room: the attribution lands on you by default."
+        },
+        {
+          "id": "b",
+          "text": "Name the colleague and what they contributed, in the meeting and in the written record.",
+          "feedback": "Correct. Principle 7 (Colleagues) — credit is given fully and specifically, and the written record is what survives the meeting when promotions and staffing are decided."
+        },
+        {
+          "id": "c",
+          "text": "Mention them afterwards to your manager, since the meeting is about the incident rather than about people.",
+          "feedback": "Breaches Principle 7 (Colleagues). A private mention does not reach the audience that formed an impression, and the Code asks for credit where the work is being discussed."
+        },
+        {
+          "id": "d",
+          "text": "Say nothing now and add their name to the post-incident document later.",
+          "feedback": "Breaches Principle 7 (Colleagues) in the moment that matters. The document is right, but the room heard an unattributed account first, and corrections rarely travel as far as the original."
+        }
+      ],
+      "correctOption": "b",
+      "explanation": "Credit is a resource you hold on someone else's behalf when you are the one presenting. Naming the contribution where the account is being formed costs nothing and is the whole of what the Code asks."
+    },
+    {
+      "principle": "colleagues",
+      "clause": "7.04",
+      "prompt": "A pull request from a colleague you like, and who is under visible pressure, contains a change you believe is unsafe under concurrent load. You are the reviewer. What does the Code ask of you?",
+      "options": [
+        {
+          "id": "a",
+          "text": "Approve it and open a follow-up ticket about the concurrency concern.",
+          "feedback": "Breaches Principle 7 (Colleagues) — review the work of others objectively and properly. An approval says the change is fit to merge, and a ticket does not change what the approval asserted."
+        },
+        {
+          "id": "b",
+          "text": "Approve it, since they are closer to this code and are the one carrying the deadline.",
+          "feedback": "Breaches Principle 7 (Colleagues). Deference to pressure is not objectivity, and the review exists precisely to be a second judgement rather than a countersignature."
+        },
+        {
+          "id": "c",
+          "text": "State the concurrency concern concretely, with the interleaving that breaks it, and hold the review open until it is answered.",
+          "feedback": "Correct. Principle 7 (Colleagues) — a candid, specific review is both the objective one and the most useful one, because it gives the author something to refute or fix rather than a verdict to argue with."
+        },
+        {
+          "id": "d",
+          "text": "Reject it and rewrite the change yourself, which is faster than a round of comments.",
+          "feedback": "Breaches Principle 7 (Colleagues). Taking the work over removes both the author's ownership and their chance to learn the failure mode — review is meant to develop colleagues, not to replace them."
+        }
+      ],
+      "correctOption": "c",
+      "explanation": "Objectivity in review is about the argument, not the tone. Naming the concrete interleaving keeps the disagreement technical, which is what lets a colleague under pressure engage with it rather than defend themselves."
+    },
+    {
+      "principle": "self",
+      "clause": "8.02",
+      "prompt": "The last three incidents on your service were all the same class of defect: unvalidated input reaching a query builder. Each was fixed where it was found. What does the Code ask of you personally?",
+      "options": [
+        {
+          "id": "a",
+          "text": "Keep fixing them as they appear — three incidents in a large codebase is a normal rate.",
+          "feedback": "Breaches Principle 8 (Self) — improve your ability to create safe and reliable software. A repeating defect class is a signal about your practice, and treating each instance as an isolated event is how it keeps repeating."
+        },
+        {
+          "id": "b",
+          "text": "Learn the class properly, then change your own practice: a lint rule, a safer default, and a review habit that looks for it.",
+          "feedback": "Correct. Principle 8 (Self) — professional development is what turns a recurring incident into a capability, and the change has to land in how you work rather than only in the three fixed lines."
+        },
+        {
+          "id": "c",
+          "text": "Raise it with management as a resourcing problem, since the team is too stretched to do better.",
+          "feedback": "Breaches Principle 8 (Self) by relocating the duty. Resourcing may well be part of it, but the Code addresses your own competence, which is the part you can act on today."
+        },
+        {
+          "id": "d",
+          "text": "Add a scanner to the pipeline and rely on it to catch the next one.",
+          "feedback": "Breaches Principle 8 (Self) if it stops there. A tool is worth having, but a scanner you have not learned from is a substitute for the understanding rather than evidence of it."
+        }
+      ],
+      "correctOption": "b",
+      "explanation": "A defect class that recurs is feedback about the engineer as much as about the code. The Code asks for the improvement to be made in your practice, where it prevents the fourth instance."
+    },
+    {
+      "principle": "self",
+      "clause": "8.07",
+      "prompt": "A bug report arrives from an intern you consider inexperienced, claiming the session token is not rotated after a password change. You are busy and the report is poorly written. What does the Code require?",
+      "options": [
+        {
+          "id": "a",
+          "text": "Deprioritise it: reports from inexperienced engineers are usually misunderstandings, and your time is limited.",
+          "feedback": "Breaches Principle 8 (Self) — do not give unfair treatment on the basis of irrelevant prejudices. Who wrote the report is not evidence about whether the token rotates."
+        },
+        {
+          "id": "b",
+          "text": "Ask them to rewrite it properly first, and look at it if they do.",
+          "feedback": "Breaches Principle 8 (Self) in effect. A quality bar applied to the reporter rather than to the claim is how a real vulnerability goes unexamined, and the cost of checking this one is minutes."
+        },
+        {
+          "id": "c",
+          "text": "Check the claim on its own terms, and separately help them write a clearer report next time.",
+          "feedback": "Correct. Principle 8 (Self) — evaluate the technical claim independently of who made it, and Principle 7 (Colleagues) adds the second half: the writing is worth teaching, just not as a condition of being heard."
+        },
+        {
+          "id": "d",
+          "text": "Forward it to a senior engineer to triage, since you cannot judge it fairly while you are busy.",
+          "feedback": "Breaches Principle 8 (Self) by passing the prejudice along with the ticket. Handing it on unexamined carries your assessment of the reporter into the next person's queue."
+        }
+      ],
+      "correctOption": "c",
+      "explanation": "Claims are checked against the system, not against the person making them. An unrotated session token is trivially verifiable, and deciding by the author's seniority is exactly the irrelevant criterion the Code names."
     }
   ]
 }
