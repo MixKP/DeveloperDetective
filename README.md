@@ -13,8 +13,21 @@ Course project for _Ethics and Professionalism for Software Engineers (953420)_.
 
 ## Quick start
 
-Node 22.9 or newer, and Docker running. Nothing else to install: the Supabase CLI comes
-from `devDependencies`, so `npx supabase` is the version this repo pins.
+Docker running, and nothing else — not even a `.env`:
+
+```bash
+docker compose up --build
+```
+
+That starts PostgreSQL, applies the schema, seeds the seven scenarios and the question
+bank, then runs the API and the SPA. The app is at **http://localhost:8080**, and you are
+an anonymous learner: sign-in needs Supabase, which is the next section.
+
+### With accounts, and with the tooling
+
+Sign-in, `npm run dev`, and the tests want the Supabase stack, because that is what the
+deployed app authenticates against. Node 22.9 or newer; the Supabase CLI comes from
+`devDependencies`, so `npx supabase` is the version this repo pins.
 
 ```bash
 cp .env.example .env       # already points at the local stack; nothing to fill in
@@ -22,11 +35,11 @@ npm install                # also compiles @dd/shared — see below
 npx supabase start         # PostgreSQL, Studio and auth, in Docker
 npm run db:migrate         # explicit deploy step, not run on container boot
 npm run db:seed            # idempotent; safe to re-run
-docker compose up --build
 ```
 
-The app is then at **http://localhost:8080**, and Supabase Studio at
-**http://localhost:54323**.
+Supabase Studio is then at **http://localhost:54323**. `docker compose up --build` still
+works alongside it and keeps using its own database; uncomment `DOCKER_DATABASE_URL` in
+`.env` to point the containers at the Supabase one instead.
 
 > Both images patch their Alpine packages at build time, and that layer caches like any
 > other — the command text never changes, so a rebuild can hand you the packages Alpine

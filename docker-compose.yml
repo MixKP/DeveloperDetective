@@ -1,4 +1,49 @@
+# `docker compose up` is self-contained: PostgreSQL, the schema, the seeded
+# content, the API and the SPA. A clone with no .env at all gets a working app at
+# http://localhost:8080, signed in as an anonymous learner.
+#
+# Sign-in needs Supabase, which is a separate stack (`npx supabase start`) because
+# it is what the deployed app uses. With .env in place the same command builds the
+# SPA against it; see README, "The database: two targets".
 services:
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: postgres
+    ports:
+      # 5433 on the host, so this never collides with the Supabase stack's 54322
+      # or with a PostgreSQL somebody already runs locally.
+      - '${DB_PORT:-5433}:5432'
+    volumes:
+      - dd-db:/var/lib/postgresql/data
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U postgres']
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    restart: unless-stopped
+
+  # Runs to completion, then the API starts. `db:seed` upserts by natural key, so
+  # every `up` re-applies the authored content without disturbing learner progress.
+  migrate:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: migrator
+    env_file:
+      - path: .env
+        required: false
+    environment:
+      DATABASE_URL: ${DOCKER_DATABASE_URL:-postgresql://postgres:postgres@db:5432/postgres}
+      DIRECT_DATABASE_URL: ${DOCKER_DATABASE_URL:-postgresql://postgres:postgres@db:5432/postgres}
+    extra_hosts:
+      - 'host.docker.internal:host-gateway'
+    depends_on:
+      db:
+        condition: service_healthy
+    restart: 'no'
+
   api:
     build:
       context: .
@@ -9,17 +54,25 @@ services:
         # `APK_SNAPSHOT=$(date +%F) docker compose build` patches; without it a
         # cached layer can hand you last month's packages.
         APK_SNAPSHOT: ${APK_SNAPSHOT:-dev}
-    env_file: .env
+    env_file:
+      - path: .env
+        required: false
     environment:
       NODE_ENV: production
       API_PORT: 3000
-      DATABASE_URL: ${DOCKER_DATABASE_URL:-${DATABASE_URL}}
+      # The compose database unless .env points the containers somewhere else.
+      DATABASE_URL: ${DOCKER_DATABASE_URL:-postgresql://postgres:postgres@db:5432/postgres}
     extra_hosts:
       - 'host.docker.internal:host-gateway'
     expose:
       - '3000'
     ports:
       - '${API_PORT:-3000}:3000'
+    depends_on:
+      db:
+        condition: service_healthy
+      migrate:
+        condition: service_completed_successfully
     healthcheck:
       test: ['CMD', 'wget', '--spider', '-q', 'http://localhost:3000/api/health']
       interval: 15s
@@ -35,6 +88,8 @@ services:
       target: web
       args:
         APK_SNAPSHOT: ${APK_SNAPSHOT:-dev}
+        # Vite inlines these, so they are build args rather than runtime env. Empty
+        # is a valid configuration: the SPA then runs anonymous-only (ADR 0008).
         VITE_SUPABASE_URL: ${VITE_SUPABASE_URL:-}
         VITE_SUPABASE_ANON_KEY: ${VITE_SUPABASE_ANON_KEY:-}
     ports:
@@ -49,3 +104,6 @@ services:
       retries: 3
       start_period: 10s
     restart: unless-stopped
+
+volumes:
+  dd-db:

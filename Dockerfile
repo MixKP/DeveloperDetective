@@ -11,6 +11,9 @@ COPY package.json package-lock.json ./
 COPY shared/package.json shared/
 COPY backend/package.json backend/
 COPY frontend/package.json frontend/
+# npm runs `prepare` after `npm ci`, and the script has to exist to decide it has
+# nothing to do here — the sources it would compile arrive in the stages below.
+COPY scripts scripts
 RUN npm ci
 
 # The contract package both sides compile against.
@@ -21,6 +24,14 @@ RUN npm run build -w @dd/shared
 FROM shared-build AS api-build
 COPY backend backend
 RUN npm run build -w @dd/backend
+
+# Schema and content, applied once against whatever database compose points at.
+# It runs the same `db:migrate` and `db:seed` a developer runs by hand, from the
+# same sources, on the build tree that already has tsx — so `docker compose up` on
+# a fresh clone produces a database with the scenarios and the test bank in it.
+# Local convenience only: this stage is never pushed and never serves traffic.
+FROM api-build AS migrator
+CMD ["sh", "-c", "npm run db:migrate && npm run db:seed"]
 
 FROM shared-build AS web-build
 COPY frontend frontend
