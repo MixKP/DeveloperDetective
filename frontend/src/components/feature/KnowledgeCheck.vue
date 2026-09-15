@@ -15,7 +15,6 @@ const props = defineProps<{
 }>();
 const emit = defineEmits<{ submit: [answers: Record<number, string>]; retake: [] }>();
 
-const started = ref(false);
 const answers = ref<Record<number, string>>({});
 
 const eligibility = computed(() => props.test.eligibility);
@@ -28,27 +27,43 @@ const answeredCount = computed(
 );
 const complete = computed(() => answeredCount.value === props.test.questions.length);
 
+/**
+ * The page holds two things at once: the result of the last sitting, and the draw
+ * for the next one. Which to show is the learner's choice rather than something
+ * derivable — a reload after a sitting must land on the result, and the retake
+ * button is the only thing that opens the next set of questions.
+ */
+const started = ref(false);
+const retaking = ref(false);
+
 const view = computed(() => {
   if (!eligibility.value.eligible) return 'locked';
-  if (started.value) return 'taking';
-  return props.attempt ? 'result' : 'intro';
+  if (props.attempt && !retaking.value) return 'result';
+  return started.value || retaking.value ? 'taking' : 'intro';
 });
 
-// A submitted sitting turns into its own result. A retake is answered with a new
-// draw, and a new draw means a new attempt number — which is the signal to open
-// the questions rather than the result the learner has just read.
+function startRetake() {
+  answers.value = {};
+  retaking.value = true;
+  emit('retake');
+}
+
+// A submitted sitting becomes the result on screen, and closes the retake it was.
+// Keyed on the number rather than the object: re-fetching the test hands over an
+// equal-but-new attempt, which is not a new sitting.
 watch(
-  () => props.attempt,
+  () => props.attempt?.attemptNumber ?? 0,
   () => {
+    retaking.value = false;
     started.value = false;
   },
 );
 
+// The fresh draw landing mid-retake clears anything typed against the old one.
 watch(
   () => props.test.attemptNumber,
   () => {
     answers.value = {};
-    started.value = true;
   },
 );
 
@@ -180,7 +195,7 @@ const dateOf = (iso: string) =>
             }})
           </span>
         </p>
-        <BaseButton class="ml-auto" variant="secondary" :disabled="busy" @click="emit('retake')">
+        <BaseButton class="ml-auto" variant="secondary" :disabled="busy" @click="startRetake">
           <RotateCcw class="size-4" aria-hidden="true" />
           Sit it again with different questions
         </BaseButton>
