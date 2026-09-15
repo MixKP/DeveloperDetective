@@ -133,9 +133,8 @@ const letter = (index: number) => String.fromCharCode(65 + index);
             {{ test.questions.length }} questions · every principle of the Code
           </p>
           <p class="mt-1.5 max-w-xl text-sm leading-relaxed text-muted">
-            No hints, and a sitting is submitted whole — this measures what you take away from the
-            platform, so answer from your own judgement. You can sit it again afterwards, and the
-            retake draws different questions.
+            No hints, and a sitting is submitted whole. It measures what you take away from the
+            platform, so answer from your own judgement.
           </p>
         </div>
         <BaseButton :disabled="busy" @click="started = true">Start the knowledge check</BaseButton>

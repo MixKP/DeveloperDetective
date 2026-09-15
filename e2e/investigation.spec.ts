@@ -92,6 +92,30 @@ test.describe('the learner journey', () => {
     await expect(page.locator('.line-insert')).toHaveCount(0);
   });
 
+  test('the diff follows the file you open, not the one you left', async ({ page }) => {
+    await openSqlCase(page);
+    await page.getByRole('button', { name: 'Open the repository' }).click();
+    await page.locator('.view-line').first().waitFor();
+
+    const openFile = (name: RegExp) => page.getByRole('button', { name }).first().click();
+    const diffMarks = async () => ({
+      inserts: await page.locator('.line-insert').count(),
+      deletes: await page.locator('.line-delete').count(),
+    });
+
+    await openFile(/auth\.service\.ts/);
+    await expect.poll(async () => (await diffMarks()).inserts).toBeGreaterThan(0);
+    const service = await diffMarks();
+
+    await openFile(/auth\.routes\.ts/);
+    await expect.poll(async () => (await diffMarks()).inserts).toBeGreaterThan(0);
+
+    // Reusing one editor across two changed files used to leave the previous diff
+    // on screen: the deletions of the file you left, and no insertions at all.
+    await openFile(/auth\.service\.ts/);
+    await expect.poll(diffMarks).toEqual(service);
+  });
+
   test('the debrief cannot be reached by deep-linking past the quiz', async ({ page }) => {
     await openSqlCase(page);
     const url = page.url();

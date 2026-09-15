@@ -128,8 +128,14 @@ onBeforeUnmount(() => {
     </header>
 
     <div class="h-[60vh] min-h-80">
+      <!-- Keyed by path: given new model paths the wrapper leaves the modified side
+           on the previous file's model, so the pane keeps the old diff — deletions
+           from the file you left, and no insertions at all. Remounting per file is
+           the honest fix; the editor is recreated anyway whenever a plain file and
+           a changed one alternate. -->
       <VueMonacoDiffEditor
         v-if="isDiff"
+        :key="path"
         :original="previousCode ?? ''"
         :modified="code"
         :language="language"
@@ -143,6 +149,7 @@ onBeforeUnmount(() => {
       />
       <VueMonacoEditor
         v-else
+        :key="path"
         :value="code"
         :language="language"
         :path="path"

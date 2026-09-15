@@ -42,10 +42,8 @@ function retake() {
         <div>
           <h1 class="text-xl font-semibold">Ethics post-test</h1>
           <p class="mt-1 max-w-2xl text-sm leading-relaxed text-muted">
-            Ten questions across the eight principles of the Code, drawn from a larger bank. It
-            belongs to you rather than to any one case, which is why it lives here instead of at the
-            end of a debrief — and you can sit it again, against different questions, whenever you
-            want to.
+            Ten questions across the eight principles of the Code. Each sitting is drawn from a
+            larger bank, so you can take it again against different questions.
           </p>
         </div>
       </div>
