@@ -46,6 +46,17 @@ export const useKnowledgeTestStore = defineStore('knowledgeTest', () => {
         })),
       });
       current.attempt = result.attempt;
+      // The sitting just recorded belongs in the record too. Built from the response
+      // rather than re-fetched: it is the same data the server would send back.
+      current.history = [
+        ...current.history,
+        {
+          attemptNumber: result.attempt.attemptNumber,
+          score: result.attempt.score,
+          total: result.attempt.total,
+          submittedAt: result.attempt.submittedAt,
+        },
+      ];
     } catch (e) {
       const message = e instanceof ApiError ? e.message : 'Could not record your answers.';
       // A refused submission usually means another tab already recorded one, so the

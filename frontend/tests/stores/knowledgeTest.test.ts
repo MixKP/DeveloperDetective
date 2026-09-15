@@ -154,6 +154,11 @@ describe('the knowledge test store', () => {
     });
     expect(store.taken).toBe(true);
     expect(store.attempt?.score).toBe(1);
+    // The sitting just submitted joins the record, so the history reads complete
+    // without another round trip.
+    expect(store.test?.history).toEqual([
+      { attemptNumber: 1, score: 1, total: 2, submittedAt: '2026-09-14T10:00:00.000Z' },
+    ]);
   });
 
   it('refetches the authoritative attempt when a retake is refused', async () => {

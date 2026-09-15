@@ -36,7 +36,7 @@ test.describe('the learner journey', () => {
     await expect(page).toHaveURL(/\/post-test/);
 
     // No case closed, so the server sends no questions at all.
-    const check = page.locator('section').filter({ hasText: 'Knowledge check' });
+    const check = page.locator('section').filter({ hasText: 'Core professional ethics' });
     await expect(check).toContainText('to unlock this');
     await expect(check.getByRole('button', { name: 'Start the knowledge check' })).toHaveCount(0);
     await expect(check.locator('ol > li')).toHaveCount(0);
@@ -163,26 +163,26 @@ test.describe('the learner journey', () => {
     // The closed case unlocks the post-test, which lives behind the top-bar button.
     await page.getByRole('button', { name: 'Post-test' }).click();
     await expect(page).toHaveURL(/\/post-test/);
-    const check = page.locator('section').filter({ hasText: 'Knowledge check' });
+    const check = page.locator('section').filter({ hasText: 'Core professional ethics' });
     await expect(check).toBeVisible();
     await expect(check).not.toContainText('to unlock this');
     await check.getByRole('button', { name: 'Start the knowledge check' }).click();
 
     // One question per principle of the Code, drawn from a larger bank.
     const items = check.locator('ol > li');
-    // The second paragraph of each item is the prompt; the first is "Question n".
-    const prompts = () => check.locator('ol > li > p:nth-child(2)').allInnerTexts();
+    // Each question item leads with a row holding its number and its prompt.
+    const prompts = () => check.locator('ol > li > div > p').allInnerTexts();
     await expect(items).toHaveCount(8);
     const firstSitting = await prompts();
 
     for (let i = 0; i < 8; i += 1) {
-      await items.nth(i).getByRole('radio').first().check();
+      await items.nth(i).locator('label').first().click();
     }
     await expect(check.getByText('8 of 8 answered')).toBeVisible();
 
     await check.getByRole('button', { name: 'Submit the knowledge check' }).click();
 
-    await expect(check.getByText('Attempt 1')).toBeVisible();
+    await expect(check.getByText('Attempt 1', { exact: true })).toBeVisible();
     // The feedback names the principle it turns on; clause numbers stay in the record.
     await expect(check.getByText(/Principle \d/).first()).toBeVisible();
     await expect(check.getByText(/clause \d/)).toHaveCount(0);
@@ -190,12 +190,12 @@ test.describe('the learner journey', () => {
 
     // A finished sitting is replayed on reload rather than reopened.
     await page.reload();
-    await expect(check.getByText('Attempt 1')).toBeVisible();
+    await expect(check.getByText('Attempt 1', { exact: true })).toBeVisible();
     await expect(check.getByRole('button', { name: 'Start the knowledge check' })).toHaveCount(0);
 
     // The retake deals a different hand from the same bank (ADR 0010).
     await check.getByRole('button', { name: /Sit it again/ }).click();
-    await expect(check.getByText('Attempt 2 ·')).toBeVisible();
+    await expect(check.getByText('Attempt 2', { exact: true })).toBeVisible();
     await expect(items).toHaveCount(8);
     const secondSitting = await prompts();
     expect(secondSitting).toHaveLength(8);
