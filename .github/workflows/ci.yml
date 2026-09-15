@@ -156,17 +156,43 @@ jobs:
           cache-from: type=gha,scope=web
           cache-to: type=gha,mode=max,scope=web
 
+      # The published port answers from the moment the container starts, before node
+      # is listening behind it — a connection that arrives early is accepted by the
+      # port forwarder and then reset, which is the `curl exit 56` this step used to
+      # fail with when eight seconds was not enough. Poll for readiness instead, and
+      # print the container's own logs either way, so a genuine boot failure says
+      # what it was rather than leaving a bare exit code behind.
       - name: Smoke test the API container
         run: |
           docker run -d --name dd-api-ci -p 3000:3000 \
             -e DATABASE_URL="postgresql://nobody:nothing@127.0.0.1:5432/nope" \
             -e NODE_ENV=production dd-api:ci
-          sleep 8
-          status=$(curl -s -o /tmp/health.json -w '%{http_code}' http://localhost:3000/api/health)
-          cat /tmp/health.json
+
+          health() {
+            curl -s --ipv4 -o /tmp/health.json -w '%{http_code}' \
+              http://127.0.0.1:3000/api/health || true
+          }
+
+          status=000
+          for _ in $(seq 1 30); do
+            status=$(health)
+            [ "$status" != "000" ] && break
+            if [ "$(docker inspect -f '{{.State.Running}}' dd-api-ci)" != "true" ]; then
+              echo "the API container exited before it served a request"
+              break
+            fi
+            sleep 1
+          done
+
+          echo "--- container logs"
+          docker logs dd-api-ci
+          echo "--- GET /api/health -> $status"
+          cat /tmp/health.json || true
+          echo
+
           test "$status" = "503"
           grep -q '"db":"unreachable"' /tmp/health.json
-          curl -s http://localhost:3000/api/nope | grep -q 'NOT_FOUND'
+          curl -s --ipv4 http://127.0.0.1:3000/api/nope | grep -q 'NOT_FOUND'
           docker rm -f dd-api-ci
 
       # Scans the images actually built above, not the Dockerfile's FROM lines.
