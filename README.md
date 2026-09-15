@@ -116,6 +116,12 @@ them. Uncomment it to point them at something reachable from inside a container 
 `host.docker.internal:54322` for the Supabase stack on your machine, or the managed
 project's URL.
 
+`DOCKER_SUPABASE_URL` is the same problem on the auth side, and it is set by default.
+Verifying a signed-in learner's token means fetching the issuer's keys, so the API needs an
+address that resolves from inside the container — while the SPA, which runs in your
+browser, keeps using `127.0.0.1`. Without it, sign-in succeeds and every API call then
+returns 401.
+
 ### The managed project
 
 Copy both connection strings whole from **Project Settings → Database → Connection string**.

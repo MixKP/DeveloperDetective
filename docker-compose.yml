@@ -65,7 +65,12 @@ services:
       # Named here so they follow the same substitution as the SPA's build args.
       # Left to `env_file` alone, `--env-file /dev/null` would build an anonymous
       # SPA against an API still demanding tokens from the .env it ignored.
-      SUPABASE_URL: ${SUPABASE_URL:-}
+      #
+      # DOCKER_SUPABASE_URL for the same reason DOCKER_DATABASE_URL exists: the
+      # browser reaches the local stack on 127.0.0.1, and this container does not.
+      # Verifying a token means fetching the issuer's keys, so the API needs an
+      # address that resolves from inside it.
+      SUPABASE_URL: ${DOCKER_SUPABASE_URL:-${SUPABASE_URL:-}}
       SUPABASE_JWT_SECRET: ${SUPABASE_JWT_SECRET:-}
     extra_hosts:
       - 'host.docker.internal:host-gateway'
