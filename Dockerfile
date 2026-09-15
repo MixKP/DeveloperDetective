@@ -39,16 +39,28 @@ RUN npm run build -w @dd/frontend
 # concurrently. `npm prune --omit=dev` looks like the cheaper move, but in a workspace
 # it leaves the other packages' dependencies hoisted at the root behind — it grew this
 # image from 288MB to 486MB, typescript included.
+#
+# What lands here is 14 MB. The three lines below are why; each was worth 10-25 MB.
 FROM node:22-alpine AS api-runtime-deps
 WORKDIR /app
 
 COPY package.json package-lock.json ./
 COPY shared/package.json shared/
 COPY backend/package.json backend/
-COPY frontend/package.json frontend/
-RUN npm ci --omit=dev --ignore-scripts \
+# frontend/package.json is deliberately absent. npm resolves the peers of every
+# workspace it can see, and `vue` and `pinia` declare `typescript` as an optional
+# peer — copying it in put 23 MB of compiler into a runtime image that only ever
+# runs `node`. `npm ci` is happy to install a subset of the lockfile's workspaces.
+#
+# --omit=peer for the same reason, one level down: nothing the API loads at runtime
+# needs a peer of its own (drizzle-orm declares two dozen drivers, all optional).
+# Type declarations and source maps go last: node never reads either, and they are
+# two thirds of drizzle-orm.
+RUN npm ci --omit=dev --omit=optional --omit=peer --ignore-scripts \
   --workspace=@dd/shared --workspace=@dd/backend --include-workspace-root \
-  && npm cache clean --force
+  && npm cache clean --force \
+  && find node_modules -type f \
+    \( -name '*.d.ts' -o -name '*.d.cts' -o -name '*.d.mts' -o -name '*.map' \) -delete
 
 # Editor scanners flag this line with node:22-alpine's own findings (1 critical,
 # 7 high — all inside the npm that ships bundled in the base). They read the tag,
