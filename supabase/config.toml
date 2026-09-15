@@ -85,7 +85,9 @@ allowed_cidrs_v6 = ["::/0"]
 # enabled = true
 
 [realtime]
-enabled = true
+# Off for this project: The app has no subscriptions: every read is a plain HTTP request to the API.
+# `supabase start` then neither pulls nor runs it.
+enabled = false
 # Bind realtime via either IPv4 or IPv6. (default: IPv4)
 # ip_version = "IPv6"
 # The maximum length in bytes of HTTP request headers. (default: 4096)
@@ -103,7 +105,9 @@ openai_api_key = "env(OPENAI_API_KEY)"
 # Email testing server. Emails sent with the local dev setup are not actually sent - rather, they
 # are monitored, and you can view the emails that would have been sent from the web interface.
 [local_smtp]
-enabled = true
+# Off for this project: No mail is sent locally — email confirmation is off, so sign-up returns a session.
+# `supabase start` then neither pulls nor runs it.
+enabled = false
 # Port to use for the email testing server web interface.
 port = 54324
 # Uncomment to expose additional ports for testing user applications that send emails.
@@ -113,7 +117,9 @@ port = 54324
 # sender_name = "Admin"
 
 [storage]
-enabled = true
+# Off for this project: Nothing is uploaded. Scenario files are authored JSON, seeded into PostgreSQL.
+# `supabase start` then neither pulls nor runs it.
+enabled = false
 # The maximum file size allowed (e.g. "5MB", "500KB").
 file_size_limit = "50MiB"
 
@@ -372,7 +378,9 @@ authorization_url_path = "/oauth/consent"
 allow_dynamic_registration = false
 
 [edge_runtime]
-enabled = true
+# Off for this project: No edge functions: the backend is the Express API in backend/.
+# `supabase start` then neither pulls nor runs it.
+enabled = false
 # Supported request policies: `oneshot`, `per_worker`.
 # `per_worker` (default) — enables hot reload during local development.
 # `oneshot` — fallback mode if hot reload causes issues (e.g. in large repos or with symlinks).
@@ -386,7 +394,9 @@ deno_version = 2
 # secret_key = "env(SECRET_VALUE)"
 
 [analytics]
-enabled = true
+# Off for this project: Logflare and its vector collector, for a dashboard nobody on this project reads.
+# `supabase start` then neither pulls nor runs it.
+enabled = false
 port = 54327
 # Configure one of the supported backends: `postgres`, `bigquery`.
 backend = "postgres"
