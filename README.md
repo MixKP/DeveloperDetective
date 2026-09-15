@@ -37,9 +37,18 @@ npm run db:migrate         # explicit deploy step, not run on container boot
 npm run db:seed            # idempotent; safe to re-run
 ```
 
-Supabase Studio is then at **http://localhost:54323**. `docker compose up --build` still
-works alongside it and keeps using its own database; uncomment `DOCKER_DATABASE_URL` in
-`.env` to point the containers at the Supabase one instead.
+Supabase Studio is then at **http://localhost:54323**.
+
+Once a `.env` exists, compose reads it. The database stays compose's own, because
+`DOCKER_DATABASE_URL` ships commented out — but the Supabase values do reach the
+containers: the SPA is built with a sign-in gate and the API demands real tokens, so
+`docker compose up` then wants `npx supabase start` beside it. To ignore the file entirely
+and get the self-contained stack back — its own PostgreSQL, anonymous learners, nothing
+else running:
+
+```bash
+docker compose --env-file /dev/null up --build
+```
 
 > Both images patch their Alpine packages at build time, and that layer caches like any
 > other — the command text never changes, so a rebuild can hand you the packages Alpine
@@ -101,9 +110,11 @@ or `link`. Drizzle owns the migrations in this repo and there is no `supabase/mi
 directory — those commands would create a second, conflicting source of truth for the schema.
 
 One consequence of the API running in a container: `127.0.0.1` inside that container is the
-container itself, not your machine, so compose overrides `DATABASE_URL` with
-`DOCKER_DATABASE_URL` (`host.docker.internal`). Leave it set for the local stack, comment it
-out for the managed project — unset, it falls through to `DATABASE_URL` unchanged.
+container itself, not your machine. That is what `DOCKER_DATABASE_URL` exists for, and why
+it ships commented out — left alone, the containers use the PostgreSQL compose starts for
+them. Uncomment it to point them at something reachable from inside a container instead:
+`host.docker.internal:54322` for the Supabase stack on your machine, or the managed
+project's URL.
 
 ### The managed project
 
