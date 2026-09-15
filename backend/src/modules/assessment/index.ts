@@ -1,4 +1,5 @@
 import type { RequestHandler, Router } from 'express';
+import type { ContentCache } from '../../platform/cache/ContentCache.js';
 import type { Database } from '../../platform/db/client.js';
 import { GetKnowledgeTest } from './application/GetKnowledgeTest.js';
 import { SubmitAttempt } from './application/SubmitAttempt.js';
@@ -8,6 +9,7 @@ import type {
   KnowledgeTestCatalog,
   TestAnswerKey,
 } from './application/ports.js';
+import { CachedKnowledgeTestCatalog } from './infrastructure/CachedKnowledgeTestCatalog.js';
 import { DrizzleAttemptRepository } from './infrastructure/DrizzleAttemptRepository.js';
 import { DrizzleKnowledgeTestCatalog } from './infrastructure/DrizzleKnowledgeTestCatalog.js';
 import { DrizzleTestAnswerKey } from './infrastructure/DrizzleTestAnswerKey.js';
@@ -31,13 +33,22 @@ export type {
   TestVariant,
 } from './domain/readModels.js';
 
-export function createAssessmentAdapters(db: Database): {
+/**
+ * The bank is cached; attempts are not. An attempt is the learner's own record and
+ * changes on every sitting, which is the one thing a content cache must not hold.
+ */
+export function createAssessmentAdapters(
+  db: Database,
+  cache?: ContentCache,
+): {
   tests: KnowledgeTestCatalog;
   testAnswerKey: TestAnswerKey;
   attempts: AttemptRepository;
 } {
+  const tests = new DrizzleKnowledgeTestCatalog(db);
+
   return {
-    tests: new DrizzleKnowledgeTestCatalog(db),
+    tests: cache ? new CachedKnowledgeTestCatalog(tests, cache) : tests,
     testAnswerKey: new DrizzleTestAnswerKey(db),
     attempts: new DrizzleAttemptRepository(db),
   };

@@ -10,6 +10,11 @@ const envSchema = z.object({
 
   CORS_ORIGINS: z.string().default(''),
 
+  // How long authored content may be served from memory. Content only changes when
+  // the seed runs, and every deployment path restarts the API after seeding; this
+  // bounds the exception, a warm instance that outlives a re-seed. 0 disables it.
+  CONTENT_CACHE_TTL_MS: z.coerce.number().int().nonnegative().default(300_000),
+
   // Supabase auth. Both optional: with neither set the API runs anonymous-only.
   // Use the JWT secret for projects on legacy HS256 keys, the URL for asymmetric ones.
   SUPABASE_URL: z.string().url().optional(),

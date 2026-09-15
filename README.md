@@ -145,6 +145,25 @@ inside a monolith. `assessment` stayed out for the opposite reason: an attempt i
 aggregate with its own lifecycle, belongs to a learner rather than to a case, and shares no
 transaction with a run.
 
+### Authored content is cached; learner state never is
+
+Scenarios, files, questions, the answer key and the knowledge-test bank change only when
+the seed runs, and every request used to re-read them: a case page read every file of the
+scenario, the post-test read the whole question bank. They are now served from an
+in-process `ContentCache` (5 minutes, `CONTENT_CACHE_TTL_MS`, `0` disables it), wired as
+decorators on the `ScenarioCatalog`, `AnswerKey` and `KnowledgeTestCatalog` ports — the
+Drizzle adapters stay the plain translation of a port into SQL.
+
+Progress and attempts are deliberately left out of it. They are what changes per request,
+and `tests/api/content-cache.test.ts` fails the build if a cached page stops reflecting a
+run, or starts reflecting somebody else's.
+
+| Endpoint (local PostgreSQL, 60 calls) | uncached | cached  |
+| ------------------------------------- | -------- | ------- |
+| `GET /api/scenarios`                  | 1.74 ms  | 1.17 ms |
+| `GET /api/scenarios/1`                | 2.27 ms  | 0.93 ms |
+| `GET /api/tests/post`                 | 2.02 ms  | 1.01 ms |
+
 ### The boundaries are lint errors, not documentation
 
 `eslint.config.mjs` fails the build when:
