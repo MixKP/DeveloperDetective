@@ -27,8 +27,15 @@ test.describe('the learner journey', () => {
     await expect(page.getByText('Critical')).toHaveCount(3);
 
     await expect(page.getByText('Cases solved').locator('..')).toContainText('0');
+  });
 
-    // The post-test lives here, and arrives locked: no case closed, no questions sent.
+  test('the post-test is reachable from the top bar, and arrives locked', async ({ page }) => {
+    await page.goto('/');
+
+    await page.getByRole('button', { name: 'Post-test' }).click();
+    await expect(page).toHaveURL(/\/post-test/);
+
+    // No case closed, so the server sends no questions at all.
     const check = page.locator('section').filter({ hasText: 'Knowledge check' });
     await expect(check).toContainText('to unlock this');
     await expect(check.getByRole('button', { name: 'Start the knowledge check' })).toHaveCount(0);
@@ -135,7 +142,7 @@ test.describe('the learner journey', () => {
     await expect(page.getByText('Final score').locator('..')).toContainText('75');
 
     await expect(page.getByText('The call is yours')).toBeVisible();
-    // The post-test is not part of a case; it waits on the dashboard.
+    // The post-test is not part of a case; it has its own page.
     await expect(page.getByText('Knowledge check')).toHaveCount(0);
     const consequence = 'incident review named the escalation';
     await expect(page.getByText(consequence)).toHaveCount(0);
@@ -153,7 +160,9 @@ test.describe('the learner journey', () => {
     await expect(page.getByText('Cases solved').locator('..')).toContainText('1');
     await expect(page.getByText('Solved · 75')).toBeVisible();
 
-    // The closed case unlocks the post-test, which lives on the dashboard.
+    // The closed case unlocks the post-test, which lives behind the top-bar button.
+    await page.getByRole('button', { name: 'Post-test' }).click();
+    await expect(page).toHaveURL(/\/post-test/);
     const check = page.locator('section').filter({ hasText: 'Knowledge check' });
     await expect(check).toBeVisible();
     await expect(check).not.toContainText('to unlock this');
@@ -170,7 +179,9 @@ test.describe('the learner journey', () => {
     await check.getByRole('button', { name: 'Submit the knowledge check' }).click();
 
     await expect(check.getByText('Your result')).toBeVisible();
-    await expect(check.getByText(/clause \d/).first()).toBeVisible();
+    // The feedback names the principle it turns on; clause numbers stay in the record.
+    await expect(check.getByText(/Principle \d/).first()).toBeVisible();
+    await expect(check.getByText(/clause \d/)).toHaveCount(0);
     await expect(check.getByRole('button', { name: 'Submit the knowledge check' })).toHaveCount(0);
 
     // One sitting: a reload replays the recorded attempt rather than reopening it.

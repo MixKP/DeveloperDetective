@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { watch } from 'vue';
 import { RouterLink, RouterView, useRouter } from 'vue-router';
-import { Fingerprint } from 'lucide-vue-next';
+import { BookOpenCheck, Fingerprint, Lock } from 'lucide-vue-next';
 import BaseButton from '@/components/ui/BaseButton.vue';
 import ThemeToggle from '@/components/ui/ThemeToggle.vue';
 import { useAuthStore } from '@/stores/auth';
@@ -66,9 +66,18 @@ async function signOut() {
           Developer Detective
         </RouterLink>
         <div class="flex items-center gap-3">
-          <p class="hidden text-xs text-muted sm:block">
+          <p class="hidden text-xs text-muted lg:block">
             You are the engineer on call — not the attacker.
           </p>
+          <!-- The post-test is per learner, not per case, so it is reachable from every
+               screen rather than buried at the end of one debrief. -->
+          <RouterLink v-if="!auth.authEnabled || auth.signedIn" :to="{ name: 'postTest' }">
+            <BaseButton variant="secondary" size="sm">
+              <Lock v-if="knowledgeTest.locked" class="size-4" aria-hidden="true" />
+              <BookOpenCheck v-else class="size-4" aria-hidden="true" />
+              Post-test
+            </BaseButton>
+          </RouterLink>
           <template v-if="auth.authEnabled">
             <span v-if="auth.email" class="hidden text-xs text-muted md:block">{{
               auth.email

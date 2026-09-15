@@ -250,7 +250,7 @@ pressure to do the easy thing:
 | -------------------------- | --------------------------------------------------------------------------- |
 | `npm test`                 | 188 tests — domain, application, API, content, stores. No database required |
 | `npm run test:integration` | 26 tests — Drizzle repositories and the seed against real PostgreSQL        |
-| `npm run test:e2e`         | 11 tests — the full journey in a real browser (Playwright)                  |
+| `npm run test:e2e`         | 12 tests — the full journey in a real browser (Playwright)                  |
 | `npm run test:all`         | All three levels                                                            |
 | `npm run typecheck`        | All three workspaces                                                        |
 | `npm run lint`             | Includes the architecture boundary rules                                    |
@@ -335,9 +335,9 @@ curl -s -X POST -H 'Content-Type: application/json' \
 ```
 
 Then walk the flow in the browser: dashboard → brief → investigate → quiz (take a hint, miss
-once) → debrief → ethical choice. The score should read **75**. Back on the dashboard, the
-ethics post-test — locked until that first case was closed — is now open, and can be sat
-once.
+once) → debrief → ethical choice. The score should read **75**. The **Post-test** button in
+the top bar then opens the ethics post-test — locked until that first case was closed — and
+it can be sat once.
 
 ---
 

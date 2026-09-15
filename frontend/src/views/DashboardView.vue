@@ -2,7 +2,6 @@
 import { onMounted } from 'vue';
 import { useRouter } from 'vue-router';
 import { CheckCircle2, FolderOpen, Lightbulb, Target } from 'lucide-vue-next';
-import KnowledgeCheck from '@/components/feature/KnowledgeCheck.vue';
 import ScenarioCard from '@/components/feature/ScenarioCard.vue';
 import StatTile from '@/components/ui/StatTile.vue';
 import { useKnowledgeTestStore } from '@/stores/knowledgeTest';
@@ -14,21 +13,14 @@ const scenarios = useScenariosStore();
 const progress = useProgressStore();
 const knowledgeTest = useKnowledgeTestStore();
 
+// The post-test is rendered on its own page, but it is fetched here so the button in
+// the top bar knows whether it is still locked.
 onMounted(() => {
   void Promise.allSettled([scenarios.fetchList(), progress.fetch(), knowledgeTest.fetch()]);
 });
 
 function openCase(id: number) {
   void router.push({ name: 'brief', params: { id } });
-}
-
-async function submitKnowledgeCheck(answers: Record<number, string>) {
-  try {
-    await knowledgeTest.submit(answers);
-  } catch {
-    // The store holds the message, and a refused submission has already refreshed
-    // the attempt it was refused for.
-  }
 }
 </script>
 
@@ -79,17 +71,5 @@ async function submitKnowledgeCheck(answers: Record<number, string>) {
         />
       </div>
     </section>
-
-    <!-- The post-test belongs to the learner, not to any one case, so it sits here
-         rather than at the end of a debrief. It arrives locked and says so. -->
-    <div v-if="knowledgeTest.test" class="flex flex-col gap-3">
-      <p v-if="knowledgeTest.error" class="text-sm text-sev-critical">{{ knowledgeTest.error }}</p>
-      <KnowledgeCheck
-        :test="knowledgeTest.test"
-        :attempt="knowledgeTest.attempt"
-        :busy="knowledgeTest.submitting"
-        @submit="submitKnowledgeCheck"
-      />
-    </div>
   </div>
 </template>

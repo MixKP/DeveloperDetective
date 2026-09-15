@@ -11,6 +11,11 @@ const router = createRouter({
     { path: '/', name: 'dashboard', component: DashboardView },
     { path: '/auth', name: 'auth', component: () => import('@/views/AuthView.vue') },
     {
+      path: '/post-test',
+      name: 'postTest',
+      component: () => import('@/views/PostTestView.vue'),
+    },
+    {
       path: '/cases/:id(\\d+)',
       component: () => import('@/views/CaseLayout.vue'),
       children: [

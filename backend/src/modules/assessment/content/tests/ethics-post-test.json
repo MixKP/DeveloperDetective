@@ -12,22 +12,22 @@
         {
           "id": "a",
           "text": "Keep it internal until after the announcement, so the launch is not undermined.",
-          "feedback": "Breaches Principle 1 (Public), clause 1.04 — disclose to the appropriate persons any actual or potential danger. A communications schedule is not a reason to delay that disclosure."
+          "feedback": "Breaches Principle 1 (Public) — disclose to the appropriate persons any actual or potential danger. A communications schedule is not a reason to delay that disclosure."
         },
         {
           "id": "b",
           "text": "Disclose it immediately to the people responsible for the system and its users, and press for containment before anything further ships.",
-          "feedback": "Correct. Principle 1 (Public), clause 1.04 — the Code places the health, safety and welfare of the public above schedule and reputation, and disclosure is what makes containment possible."
+          "feedback": "Correct. Principle 1 (Public) — the Code places the health, safety and welfare of the public above schedule and reputation, and disclosure is what makes containment possible."
         },
         {
           "id": "c",
           "text": "Wait until a customer reports a problem, so you are not raising a false alarm.",
-          "feedback": "Breaches Principle 1 (Public), clause 1.04. You already hold confirmed evidence of unauthorised access, so there is no alarm to be false about — waiting only converts a known danger into an unreported one."
+          "feedback": "Breaches Principle 1 (Public). You already hold confirmed evidence of unauthorised access, so there is no alarm to be false about — waiting only converts a known danger into an unreported one."
         },
         {
           "id": "d",
           "text": "Fix it silently in the next sprint and say nothing, since the vulnerability will be gone.",
-          "feedback": "Breaches Principle 1 (Public), clause 1.04 and Principle 6 (Profession), clause 6.08 — a silent fix leaves the people whose accounts were accessed uninformed, and hides an error the profession expects you to own."
+          "feedback": "Breaches Principle 1 (Public) and Principle 6 (Profession) — a silent fix leaves the people whose accounts were accessed uninformed, and hides an error the profession expects you to own."
         }
       ],
       "correctOption": "b",
@@ -41,25 +41,25 @@
         {
           "id": "a",
           "text": "Say it is complete, because the manager has the authority to decide what the client is told.",
-          "feedback": "Breaches Principle 2 (Client and Employer), clause 2.06 — significant problems must be reported honestly and promptly. Authority does not transfer your responsibility for a false statement, and Principle 5 (Management), clause 5.11 says management must never ask an engineer to violate the Code: the request itself was improper."
+          "feedback": "Breaches Principle 2 (Client and Employer) — significant problems must be reported honestly and promptly. Authority does not transfer your responsibility for a false statement, and Principle 5 (Management) says management must never ask an engineer to violate the Code: the request itself was improper."
         },
         {
           "id": "b",
           "text": "Say nothing and let the client's own audit find the gap later.",
-          "feedback": "Breaches Principle 2 (Client and Employer), clause 2.06. Silence about a limitation you know of is a form of misrepresentation, and it removes the client's chance to decide about a risk that is theirs to carry."
+          "feedback": "Breaches Principle 2 (Client and Employer). Silence about a limitation you know of is a form of misrepresentation, and it removes the client's chance to decide about a risk that is theirs to carry."
         },
         {
           "id": "c",
           "text": "Delete the partial test report so no document contradicts the statement.",
-          "feedback": "Breaches Principle 2 (Client and Employer), clause 2.06 and Principle 6 (Profession), clause 6.08 — destroying the record converts an incomplete job into a concealed one, and makes the error impossible for anyone to take responsibility for."
+          "feedback": "Breaches Principle 2 (Client and Employer) and Principle 6 (Profession) — destroying the record converts an incomplete job into a concealed one, and makes the error impossible for anyone to take responsibility for."
         },
         {
           "id": "d",
           "text": "Report accurately what was tested and what was not, and state the risk the gap leaves.",
-          "feedback": "Correct. Principle 2 (Client and Employer), clause 2.06 — you serve the client's interest by giving them a true picture of the risk they are accepting, not a comfortable one."
+          "feedback": "Correct. Principle 2 (Client and Employer) — you serve the client's interest by giving them a true picture of the risk they are accepting, not a comfortable one."
         }
       ],
-      "explanation": "Honesty about what a system has and has not been tested for is the whole of clause 2.06. Reporting the gap is not disloyalty to the employer — it is the only version of loyalty the Code recognises, because it is the client who pays for an undisclosed risk.",
+      "explanation": "Honesty about what a system has and has not been tested for is the whole of Principle 2 (Client and Employer). Reporting the gap is not disloyalty to the employer — it is the only version of loyalty the Code recognises, because it is the client who pays for an undisclosed risk.",
       "correctOption": "d"
     },
     {
@@ -70,22 +70,22 @@
         {
           "id": "a",
           "text": "Rotation ends the exposure but not the harm already done; the team still owes an assessment of what was accessed, and a disclosure to whoever must be told.",
-          "feedback": "Correct. Principle 3 (Product), clause 3.10 with Principle 1 (Public), clause 1.04 — an adequate response covers the harm that already occurred, not only the hole that allowed it."
+          "feedback": "Correct. Principle 3 (Product) with Principle 1 (Public) — an adequate response covers the harm that already occurred, not only the hole that allowed it."
         },
         {
           "id": "b",
           "text": "Nothing — rotating the key removes the attacker's access, so the incident is closed.",
-          "feedback": "Breaches Principle 3 (Product), clause 3.10 and Principle 1 (Public), clause 1.04. Rotation ends future use of the key; it says nothing about what was already done with it. \"Probably\" is an assumption standing where an audit log would give an answer."
+          "feedback": "Breaches Principle 3 (Product) and Principle 1 (Public). Rotation ends future use of the key; it says nothing about what was already done with it. \"Probably\" is an assumption standing where an audit log would give an answer."
         },
         {
           "id": "c",
           "text": "They should have kept the old key active until the next release, to avoid breaking checkout.",
-          "feedback": "Breaches Principle 3 (Product), clause 3.01 and Principle 1 (Public), clause 1.03 — deliberately leaving a known-compromised credential live trades other people's money for your own release convenience. Balancing cost and schedule never extends to a known live exposure."
+          "feedback": "Breaches Principle 3 (Product) and Principle 1 (Public) — deliberately leaving a known-compromised credential live trades other people's money for your own release convenience. Balancing cost and schedule never extends to a known live exposure."
         },
         {
           "id": "d",
           "text": "Detecting leaked credentials is the repository host's responsibility, not the team's.",
-          "feedback": "Breaches Principle 3 (Product), clause 3.06 and Principle 6 (Profession), clause 6.08 — the engineers who ship the code own its defects. A scanner is a safety net, never the accountable party."
+          "feedback": "Breaches Principle 3 (Product) and Principle 6 (Profession) — the engineers who ship the code own its defects. A scanner is a safety net, never the accountable party."
         }
       ],
       "correctOption": "a",
@@ -99,22 +99,22 @@
         {
           "id": "a",
           "text": "Accept it, since you are confident it will not change your technical opinion.",
-          "feedback": "Breaches Principle 4 (Judgement), clause 4.05 — the duty is to disclose conflicts of interest, not to be privately certain you have resisted one. Independence that cannot be seen by others is not independence for the purposes of an evaluation."
+          "feedback": "Breaches Principle 4 (Judgement) — the duty is to disclose conflicts of interest, not to be privately certain you have resisted one. Independence that cannot be seen by others is not independence for the purposes of an evaluation."
         },
         {
           "id": "b",
           "text": "Accept it, but keep it to yourself so it does not complicate the evaluation.",
-          "feedback": "Breaches Principle 4 (Judgement), clause 4.05 and clause 4.03. Concealment is the specific harm the clause names: an undisclosed interest taints every conclusion you sign, including the ones that were honest."
+          "feedback": "Breaches Principle 4 (Judgement). Concealment is the specific harm the principle names: an undisclosed interest taints every conclusion you sign, including the ones that were honest."
         },
         {
           "id": "c",
           "text": "Disclose or decline it according to policy, so the independence of the evaluation is visible to everyone relying on it.",
-          "feedback": "Correct. Principle 4 (Judgement), clause 4.05 — disclosure preserves both the objectivity of the evaluation and the credibility it needs to be useful."
+          "feedback": "Correct. Principle 4 (Judgement) — disclosure preserves both the objectivity of the evaluation and the credibility it needs to be useful."
         },
         {
           "id": "d",
           "text": "Adjust the evaluation criteria so the vendor's product scores well.",
-          "feedback": "Breaches Principle 4 (Judgement), clause 4.03 — maintain objectivity in evaluations. Shaping the criteria to fit a preferred answer is manipulating technical findings, which the Code treats as a failure of professional integrity rather than a matter of preference."
+          "feedback": "Breaches Principle 4 (Judgement) — maintain objectivity in evaluations. Shaping the criteria to fit a preferred answer is manipulating technical findings, which the Code treats as a failure of professional integrity rather than a matter of preference."
         }
       ],
       "correctOption": "c",
@@ -128,22 +128,22 @@
         {
           "id": "a",
           "text": "Increase deadline pressure so defects are found earlier in the cycle.",
-          "feedback": "Breaches Principle 5 (Management), clause 5.01 — pressure is the cause of the silence, not a cure for it. Managing quality and risk means changing what the team is rewarded for, not raising the cost of honesty."
+          "feedback": "Breaches Principle 5 (Management) — pressure is the cause of the silence, not a cure for it. Managing quality and risk means changing what the team is rewarded for, not raising the cost of honesty."
         },
         {
           "id": "b",
           "text": "Create a safe escalation path, and make honest risk reporting something the team is rewarded for rather than punished for.",
-          "feedback": "Correct. Principle 5 (Management), clause 5.01 — a manager is responsible for the conditions under which risk becomes visible, and incentives are the strongest of those conditions."
+          "feedback": "Correct. Principle 5 (Management) — a manager is responsible for the conditions under which risk becomes visible, and incentives are the strongest of those conditions."
         },
         {
           "id": "c",
           "text": "Reduce the scope of security testing, so fewer defects surface close to a release date.",
-          "feedback": "Breaches Principle 5 (Management), clause 5.01 and Principle 3 (Product), clause 3.10 — this removes the evidence rather than the risk, and ships software whose safety is simply unknown."
+          "feedback": "Breaches Principle 5 (Management) and Principle 3 (Product) — this removes the evidence rather than the risk, and ships software whose safety is simply unknown."
         },
         {
           "id": "d",
           "text": "Ask engineers to raise defects informally, so they never appear in the written record.",
-          "feedback": "Breaches Principle 5 (Management), clause 5.11 and Principle 2 (Client and Employer), clause 2.06 — asking engineers to keep known risks out of the record is asking them to violate the Code, which is the one thing clause 5.11 forbids outright."
+          "feedback": "Breaches Principle 5 (Management) and Principle 2 (Client and Employer) — asking engineers to keep known risks out of the record is asking them to violate the Code, which is the one thing forbids outright."
         }
       ],
       "correctOption": "b",
@@ -157,22 +157,22 @@
         {
           "id": "a",
           "text": "Say nothing; the report is about the defect, not about who wrote it.",
-          "feedback": "Breaches Principle 6 (Profession), clause 6.08 — take responsibility for errors in your own work. A report that cannot name the decision behind the defect cannot explain why it was made, so the team learns nothing transferable."
+          "feedback": "Breaches Principle 6 (Profession) — take responsibility for errors in your own work. A report that cannot name the decision behind the defect cannot explain why it was made, so the team learns nothing transferable."
         },
         {
           "id": "b",
           "text": "Correct the code quietly and let the report record the root cause as unknown.",
-          "feedback": "Breaches Principle 6 (Profession), clause 6.08 and Principle 2 (Client and Employer), clause 2.06 — an incident record you know to be false is worse than no record, because other people will plan around it."
+          "feedback": "Breaches Principle 6 (Profession) and Principle 2 (Client and Employer) — an incident record you know to be false is worse than no record, because other people will plan around it."
         },
         {
           "id": "c",
           "text": "Attribute it to the reviewer who approved the pull request.",
-          "feedback": "Breaches Principle 6 (Profession), clause 6.08 and Principle 7 (Colleagues), clause 7.02 — shifting your own error onto a colleague is both a refusal of responsibility and an unfair treatment of them."
+          "feedback": "Breaches Principle 6 (Profession) and Principle 7 (Colleagues) — shifting your own error onto a colleague is both a refusal of responsibility and an unfair treatment of them."
         },
         {
           "id": "d",
           "text": "State plainly that the change was yours and explain the reasoning that led to it, so the report is accurate and the lesson is usable.",
-          "feedback": "Correct. Principle 6 (Profession), clause 6.08 — owning the error is what turns an incident report into something the next engineer can learn from."
+          "feedback": "Correct. Principle 6 (Profession) — owning the error is what turns an incident report into something the next engineer can learn from."
         }
       ],
       "correctOption": "d",
@@ -186,26 +186,26 @@
         {
           "id": "a",
           "text": "Post a detailed breakdown naming them in the company-wide channel, so everyone learns from the mistake.",
-          "feedback": "Breaches Principle 7 (Colleagues), clause 7.02 — give constructive feedback without humiliation. The lesson can be shared without the audience; choosing the audience is what turns feedback into punishment."
+          "feedback": "Breaches Principle 7 (Colleagues) — give constructive feedback without humiliation. The lesson can be shared without the audience; choosing the audience is what turns feedback into punishment."
         },
         {
           "id": "b",
           "text": "Say nothing and quietly fix it yourself, to protect them from the consequences.",
-          "feedback": "Breaches Principle 7 (Colleagues), clause 7.02 and Principle 3 (Product), clause 3.10 — withholding the feedback denies them the thing that would prevent a repeat, and an unexplained fix leaves no record of what the defect was."
+          "feedback": "Breaches Principle 7 (Colleagues) and Principle 3 (Product) — withholding the feedback denies them the thing that would prevent a repeat, and an unexplained fix leaves no record of what the defect was."
         },
         {
           "id": "c",
           "text": "Fix the issue, explain the cause in a way that teaches, and raise it in a review setting that does not humiliate them.",
-          "feedback": "Correct. Principle 7 (Colleagues), clause 7.02 — the defect gets addressed and the person gets more capable, which is the outcome the clause is aiming at."
+          "feedback": "Correct. Principle 7 (Colleagues) — the defect gets addressed and the person gets more capable, which is the outcome the principle is aiming at."
         },
         {
           "id": "d",
           "text": "Remove them from security-sensitive work permanently.",
-          "feedback": "Breaches Principle 7 (Colleagues), clause 7.02 and Principle 8 (Self), clause 8.01 as applied to your team — a single mistake answered with permanent exclusion punishes learning rather than enabling it, and is out of proportion to the error."
+          "feedback": "Breaches Principle 7 (Colleagues) and Principle 8 (Self) as applied to your team — a single mistake answered with permanent exclusion punishes learning rather than enabling it, and is out of proportion to the error."
         }
       ],
       "correctOption": "c",
-      "explanation": "Principle 7 asks two things at once: the defect must be dealt with, and the colleague must come out of it more capable. Responses that achieve only one of those are the ones the clause is written against."
+      "explanation": "Principle 7 asks two things at once: the defect must be dealt with, and the colleague must come out of it more capable. Responses that achieve only one of those are the ones the principle is written against."
     },
     {
       "principle": "self",
@@ -215,22 +215,22 @@
         {
           "id": "a",
           "text": "Say plainly that it is outside your current competence, learn what the work requires, and arrange qualified review before it ships.",
-          "feedback": "Correct. Principle 8 (Self), clause 8.01 with Principle 2, clause 2.01 — knowing the limits of your competence and acting on them is a professional skill, not an admission of inadequacy."
+          "feedback": "Correct. Principle 8 (Self) with Principle 2 — knowing the limits of your competence and acting on them is a professional skill, not an admission of inadequacy."
         },
         {
           "id": "b",
           "text": "Accept the assignment and present yourself as experienced, then learn as you go.",
-          "feedback": "Breaches Principle 2 (Client and Employer), clause 2.01 — be honest about your competence — and Principle 8 (Self), clause 8.01. Misrepresenting competence removes the employer's ability to allocate review or support where it is needed."
+          "feedback": "Breaches Principle 2 (Client and Employer) — be honest about your competence — and Principle 8 (Self). Misrepresenting competence removes the employer's ability to allocate review or support where it is needed."
         },
         {
           "id": "c",
           "text": "Copy a working implementation from a public example without evaluating it.",
-          "feedback": "Breaches Principle 3 (Product), clause 3.06 and Principle 8 (Self), clause 8.01 — code you cannot evaluate is code you cannot vouch for, and you remain accountable for what you ship regardless of where it came from."
+          "feedback": "Breaches Principle 3 (Product) and Principle 8 (Self) — code you cannot evaluate is code you cannot vouch for, and you remain accountable for what you ship regardless of where it came from."
         },
         {
           "id": "d",
           "text": "Implement the functional part and leave the security properties to whoever maintains it next.",
-          "feedback": "Breaches Principle 3 (Product), clause 3.10 and Principle 1 (Public), clause 1.03 — shipping a security-sensitive component whose security nobody has assessed is approving software you know has not been shown to be safe."
+          "feedback": "Breaches Principle 3 (Product) and Principle 1 (Public) — shipping a security-sensitive component whose security nobody has assessed is approving software you know has not been shown to be safe."
         }
       ],
       "correctOption": "a",
@@ -244,22 +244,22 @@
         {
           "id": "a",
           "text": "Compliance is the standard the profession sets, so nothing further is owed.",
-          "feedback": "Misreads Principle 6 (Profession), clause 6.06 and Principle 1 (Public), clause 1.03. Law is the minimum enforceable standard; professional ethics are the duties a profession expects of its members, and they begin above that line rather than at it."
+          "feedback": "Misreads Principle 6 (Profession) and Principle 1 (Public). Law is the minimum enforceable standard; professional ethics are the duties a profession expects of its members, and they begin above that line rather than at it."
         },
         {
           "id": "b",
           "text": "The obligation begins only once a regulator issues guidance covering this defect.",
-          "feedback": "Breaches Principle 1 (Public), clause 1.04. Waiting for an external authority to name a danger you already know about is exactly the delay clause 1.04 forbids, and regulation is always written after the harm."
+          "feedback": "Breaches Principle 1 (Public). Waiting for an external authority to name a danger you already know about is exactly the delay forbids, and regulation is always written after the harm."
         },
         {
           "id": "c",
           "text": "Ethics and law are the same rules expressed in different words.",
-          "feedback": "Misreads Principle 6 (Profession), clause 6.06, which confuses the three levels the Code distinguishes: law is the minimum enforceable rule, professional ethics are the duties expected of members of a profession, and personal morality is individual belief. A legal act can still be a professional failure."
+          "feedback": "Misreads Principle 6 (Profession), which confuses the three levels the Code distinguishes: law is the minimum enforceable rule, professional ethics are the duties expected of members of a profession, and personal morality is individual belief. A legal act can still be a professional failure."
         },
         {
           "id": "d",
           "text": "Legal compliance is the minimum standard; professional responsibility obliges you to act on a known risk to users whether or not a law requires it.",
-          "feedback": "Correct. Principle 6 (Profession), clause 6.06 with Principle 1 (Public), clause 1.03 — the Code asks for professional judgement about harm, not for the smallest action that avoids liability."
+          "feedback": "Correct. Principle 6 (Profession) with Principle 1 (Public) — the Code asks for professional judgement about harm, not for the smallest action that avoids liability."
         }
       ],
       "correctOption": "d",
@@ -273,22 +273,22 @@
         {
           "id": "a",
           "text": "The client's requirement wins, because the client is paying and has accepted the risk.",
-          "feedback": "Breaches Principle 1 (Public), clause 1.01 and misreads Principle 2. The client can accept risk on their own behalf, but not on behalf of the users who will bear it — which is precisely why Principle 2 is written as subordinate to Principle 1."
+          "feedback": "Breaches Principle 1 (Public) and misreads Principle 2. The client can accept risk on their own behalf, but not on behalf of the users who will bear it — which is precisely why Principle 2 is written as subordinate to Principle 1."
         },
         {
           "id": "b",
           "text": "The safety of the users takes precedence; a client's interest is served only in ways that are consistent with it.",
-          "feedback": "Correct. Principle 1 (Public), clause 1.01, and the qualifying wording of Principle 2. The precedence is written into the Code rather than left to circumstance."
+          "feedback": "Correct. Principle 1 (Public), and the qualifying wording of Principle 2. The precedence is written into the Code rather than left to circumstance."
         },
         {
           "id": "c",
           "text": "The two interests are weighed equally, and whichever has more stakeholders behind it decides.",
-          "feedback": "Misreads Principle 1 (Public), clause 1.01. The Code establishes a precedence, not a vote — a harm to users does not become acceptable by being outnumbered."
+          "feedback": "Misreads Principle 1 (Public). The Code establishes a precedence, not a vote — a harm to users does not become acceptable by being outnumbered."
         },
         {
           "id": "d",
           "text": "Escalate to management and adopt whatever they decide.",
-          "feedback": "Breaches Principle 4 (Judgement), clause 4.01 — escalation is right, but deferring your own professional judgement to the outcome is not. Principle 5, clause 5.11 also means a decision to proceed unsafely is not one management is entitled to make for you."
+          "feedback": "Breaches Principle 4 (Judgement) — escalation is right, but deferring your own professional judgement to the outcome is not. Principle 5 also means a decision to proceed unsafely is not one management is entitled to make for you."
         }
       ],
       "correctOption": "b",

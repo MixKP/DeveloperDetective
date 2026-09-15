@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue';
 import { useRouter } from 'vue-router';
-import { Home } from 'lucide-vue-next';
+import { BookOpenCheck, Home } from 'lucide-vue-next';
 import BaseButton from '@/components/ui/BaseButton.vue';
 import BaseCard from '@/components/ui/BaseCard.vue';
 import DebriefPanel from '@/components/feature/DebriefPanel.vue';
@@ -62,10 +62,13 @@ async function choose(choiceId: number) {
       @choose="choose"
     />
 
-    <!-- The post-test belongs to the learner rather than to this case, so it lives on
-         the dashboard and opens once a case is closed. -->
+    <!-- The post-test belongs to the learner rather than to this case, so it has its own
+         page — closing this case is what opened it. -->
     <div v-if="scenario.state.completed" class="flex flex-wrap items-center justify-end gap-3">
-      <p class="mr-auto text-sm text-muted">The ethics post-test is waiting on the dashboard.</p>
+      <BaseButton variant="ghost" @click="router.push({ name: 'postTest' })">
+        <BookOpenCheck class="size-4" aria-hidden="true" />
+        Take the ethics post-test
+      </BaseButton>
       <BaseButton variant="secondary" @click="router.push('/')">
         <Home class="size-4" aria-hidden="true" />
         Back to open cases

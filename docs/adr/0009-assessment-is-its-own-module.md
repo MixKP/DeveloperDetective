@@ -41,9 +41,9 @@ reading.
 ## Consequences
 
 - One more module to wire, and a second seed command (`db:seed` runs both).
-- An attempt is per learner, not per case, so the test is rendered on the dashboard rather
-  than as a stage of any run — the debrief only points at it. A learner who finishes every
-  case still sits the test once.
+- An attempt is per learner, not per case, so the test has its own page and its own button
+  in the top bar rather than being a stage of any run — the debrief only points at it. A
+  learner who finishes every case still sits the test once.
 - Being per learner does not make it available from the first minute: it measures what the
   platform taught, so `Eligibility` keeps it shut until a case is closed. The intent is
   every case, and `CASES_REQUIRED` is set to 1 because the catalog is longer than one
