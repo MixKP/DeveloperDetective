@@ -27,6 +27,12 @@ test.describe('the learner journey', () => {
     await expect(page.getByText('Critical')).toHaveCount(3);
 
     await expect(page.getByText('Cases solved').locator('..')).toContainText('0');
+
+    // The post-test lives here, and arrives locked: no case closed, no questions sent.
+    const check = page.locator('section').filter({ hasText: 'Knowledge check' });
+    await expect(check).toContainText('to unlock this');
+    await expect(check.getByRole('button', { name: 'Start the knowledge check' })).toHaveCount(0);
+    await expect(check.locator('ol > li')).toHaveCount(0);
   });
 
   test('every seeded case opens, briefs, and renders its repository', async ({ page }) => {
@@ -129,7 +135,7 @@ test.describe('the learner journey', () => {
     await expect(page.getByText('Final score').locator('..')).toContainText('75');
 
     await expect(page.getByText('The call is yours')).toBeVisible();
-    // The questions would telegraph which decision the platform considers defensible.
+    // The post-test is not part of a case; it waits on the dashboard.
     await expect(page.getByText('Knowledge check')).toHaveCount(0);
     const consequence = 'incident review named the escalation';
     await expect(page.getByText(consequence)).toHaveCount(0);
@@ -143,9 +149,14 @@ test.describe('the learner journey', () => {
 
     await expect(page.getByRole('button', { name: 'Commit to this decision' })).toHaveCount(0);
 
-    // The knowledge check is the last thing on the page, and only after the call.
+    await page.getByRole('button', { name: 'Back to open cases' }).click();
+    await expect(page.getByText('Cases solved').locator('..')).toContainText('1');
+    await expect(page.getByText('Solved · 75')).toBeVisible();
+
+    // The closed case unlocks the post-test, which lives on the dashboard.
     const check = page.locator('section').filter({ hasText: 'Knowledge check' });
     await expect(check).toBeVisible();
+    await expect(check).not.toContainText('to unlock this');
     await check.getByRole('button', { name: 'Start the knowledge check' }).click();
 
     const items = check.locator('ol > li');
@@ -166,10 +177,6 @@ test.describe('the learner journey', () => {
     await page.reload();
     await expect(check.getByText('Your result')).toBeVisible();
     await expect(check.getByRole('button', { name: 'Start the knowledge check' })).toHaveCount(0);
-
-    await page.getByRole('button', { name: 'Back to open cases' }).click();
-    await expect(page.getByText('Cases solved').locator('..')).toContainText('1');
-    await expect(page.getByText('Solved · 75')).toBeVisible();
   });
 
   test('progress survives a reload, because it lives on the server', async ({ page }) => {

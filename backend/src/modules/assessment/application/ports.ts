@@ -23,6 +23,16 @@ export interface TestAnswerKey {
   grade(testId: number, selections: SelectedOption[]): Promise<GradedAnswerContent[]>;
 }
 
+/**
+ * How far through the catalog a learner is. `assessment` shares nothing with
+ * `investigation` (ADR 0009), so it counts closed cases through this port rather than by
+ * reading a run — the two modules still meet only in composition.ts.
+ */
+export interface CaseProgress {
+  countCompleted(learnerId: string): Promise<number>;
+  countCases(): Promise<number>;
+}
+
 export interface AttemptRepository {
   find(learnerId: string, testId: number): Promise<Attempt | null>;
   save(attempt: Attempt): Promise<void>;

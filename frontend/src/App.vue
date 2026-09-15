@@ -48,6 +48,7 @@ watch(
     // list it just loaded, leaving a signed-in learner staring at no cases at all.
     scenarios.fetchList().catch(ignore);
     progress.fetch().catch(ignore);
+    knowledgeTest.fetch().catch(ignore);
   },
 );
 

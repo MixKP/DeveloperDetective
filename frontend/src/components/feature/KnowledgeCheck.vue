@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue';
-import { BookOpenCheck, CheckCircle2, XCircle } from 'lucide-vue-next';
+import { BookOpenCheck, CheckCircle2, Lock, XCircle } from 'lucide-vue-next';
 import type { AttemptResult, KnowledgeTestResponse } from '@dd/shared';
 import BaseBadge from '@/components/ui/BaseBadge.vue';
 import BaseButton from '@/components/ui/BaseButton.vue';
@@ -22,6 +22,11 @@ const answeredCount = computed(
   () => props.test.questions.filter((question) => answers.value[question.id]).length,
 );
 const complete = computed(() => answeredCount.value === props.test.questions.length);
+
+const eligibility = computed(() => props.test.eligibility);
+const casesOwed = computed(() =>
+  Math.max(eligibility.value.casesRequired - eligibility.value.casesCompleted, 0),
+);
 
 const promptFor = (questionId: number) =>
   props.test.questions.find((question) => question.id === questionId)?.prompt ?? '';
@@ -96,8 +101,33 @@ const optionText = (questionId: number, optionId: string) =>
       </ol>
     </template>
 
+    <!-- Locked: the server sent no questions at all, so there is nothing here to hide.
+         The test asks what the platform taught, which means closing a case first. -->
+    <template v-else-if="!eligibility.eligible">
+      <div class="flex items-start gap-3">
+        <Lock class="mt-0.5 size-4 shrink-0 text-muted" aria-hidden="true" />
+        <div class="flex-1">
+          <p class="text-sm">
+            Close
+            {{ casesOwed }}
+            more {{ casesOwed === 1 ? 'case' : 'cases' }} to unlock this. It measures what you take
+            away from the platform, so it comes after the casework — ideally after all
+            {{ eligibility.casesTotal }}.
+          </p>
+          <p class="mt-3 text-xs text-muted">
+            {{ eligibility.casesCompleted }} of {{ eligibility.casesTotal }} cases closed
+          </p>
+          <ProgressBar
+            class="mt-2"
+            :value="eligibility.casesCompleted"
+            :max="eligibility.casesTotal"
+          />
+        </div>
+      </div>
+    </template>
+
     <!-- Not sat yet. The questions stay hidden behind a deliberate click so that a
-         learner scrolling the debrief does not start the test by accident. -->
+         learner does not start the test by accident while scrolling the dashboard. -->
     <template v-else-if="!started">
       <p class="text-sm text-muted">
         No hints here, and no second attempt — this measures what you take away from the platform,

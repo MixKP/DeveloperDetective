@@ -1,13 +1,20 @@
 import type { SubmitAttemptRequest, SubmitAttemptResponse, TestVariant } from '@dd/shared';
 import { Attempt } from '../domain/Attempt.js';
+import { Eligibility } from '../domain/Eligibility.js';
 import { NotFoundError } from './errors.js';
-import type { AttemptRepository, KnowledgeTestCatalog, TestAnswerKey } from './ports.js';
+import type {
+  AttemptRepository,
+  CaseProgress,
+  KnowledgeTestCatalog,
+  TestAnswerKey,
+} from './ports.js';
 
 export class SubmitAttempt {
   constructor(
     private readonly catalog: KnowledgeTestCatalog,
     private readonly answerKey: TestAnswerKey,
     private readonly attempts: AttemptRepository,
+    private readonly cases: CaseProgress,
   ) {}
 
   async execute(
@@ -17,6 +24,15 @@ export class SubmitAttempt {
   ): Promise<SubmitAttemptResponse> {
     const test = await this.catalog.findByVariant(variant);
     if (!test) throw new NotFoundError('Knowledge test');
+
+    // The gate is re-checked here rather than trusted from the GET: a locked test is
+    // served without questions, but a client that knows the question ids could still
+    // post an attempt the learner has not earned.
+    const [completed, total] = await Promise.all([
+      this.cases.countCompleted(learnerId),
+      this.cases.countCases(),
+    ]);
+    Eligibility.assess(completed, total).requireOpen();
 
     if (await this.attempts.find(learnerId, test.id)) Attempt.rejectRetake();
 

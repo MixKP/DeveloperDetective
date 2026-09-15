@@ -4,6 +4,7 @@ import { beforeEach, describe, expect, it } from 'vitest';
 import { createApiApp } from '../../src/composition.js';
 import {
   assessmentDeps,
+  closedCase,
   InMemoryInvestigationRepository,
   LEARNER,
   StubAnswerKey,
@@ -14,14 +15,20 @@ import {
 
 let app: Express;
 
-beforeEach(() => {
-  app = createApiApp({
+/** The gate wants a closed case, so every test but the locked ones starts with one. */
+const appFor = (investigations: InMemoryInvestigationRepository) =>
+  createApiApp({
     catalog: new StubCatalog(),
     answerKey: new StubAnswerKey(),
-    investigations: new InMemoryInvestigationRepository(),
+    investigations,
     ...assessmentDeps(),
     pingDb: async () => true,
   });
+
+beforeEach(async () => {
+  const investigations = new InMemoryInvestigationRepository();
+  await investigations.save(closedCase());
+  app = appFor(investigations);
 });
 
 const asLearner = (req: request.Test) => req.set('X-Learner-Id', LEARNER);
@@ -44,6 +51,25 @@ describe('GET /api/tests/:variant', () => {
     expect(serialized).not.toContain('feedback');
     expect(serialized).not.toContain('clause');
     expect(res.body.attempt).toBeNull();
+    expect(res.body.eligibility).toEqual({
+      eligible: true,
+      casesCompleted: 1,
+      casesRequired: 1,
+      casesTotal: 1,
+    });
+  });
+
+  it('withholds the questions from a learner who has closed no case', async () => {
+    const locked = appFor(new InMemoryInvestigationRepository());
+
+    const res = await asLearner(request(locked).get('/api/tests/post')).expect(200);
+
+    expect(res.body.questions).toEqual([]);
+    expect(res.body.eligibility.eligible).toBe(false);
+    expect(res.body.eligibility.casesCompleted).toBe(0);
+    // The title and the description still travel, so the dashboard can say what is
+    // locked rather than showing an empty card.
+    expect(res.body.title).toBe('Core professional ethics');
   });
 
   it('refuses a variant the schema does not define', async () => {
@@ -91,6 +117,24 @@ describe('POST /api/tests/:variant/attempt', () => {
 
     expect(res.body.error.code).toBe('RULE_VIOLATION');
     expect(res.body.error.message).toMatch(/cannot be retaken/i);
+  });
+
+  it('refuses an attempt from a learner who has closed no case', async () => {
+    const locked = appFor(new InMemoryInvestigationRepository());
+
+    const res = await request(locked)
+      .post('/api/tests/post/attempt')
+      .set('X-Learner-Id', LEARNER)
+      .send({
+        responses: [
+          { questionId: TEST_Q1, optionId: 'b' },
+          { questionId: TEST_Q2, optionId: 'a' },
+        ],
+      })
+      .expect(422);
+
+    expect(res.body.error.code).toBe('RULE_VIOLATION');
+    expect(res.body.error.message).toMatch(/close 1 more case/i);
   });
 
   it('refuses a partial submission', async () => {

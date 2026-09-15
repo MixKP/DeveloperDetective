@@ -18,7 +18,7 @@ import type {
   TestAnswerKey,
   TestVariant,
 } from '../../src/modules/assessment/index.js';
-import type { Investigation } from '../../src/modules/investigation/domain/Investigation.js';
+import { Investigation } from '../../src/modules/investigation/domain/Investigation.js';
 import type { InvestigationRepository } from '../../src/modules/investigation/application/ports.js';
 
 export const SCENARIO_ID = 1;
@@ -227,6 +227,25 @@ export class InMemoryInvestigationRepository implements InvestigationRepository 
   async findAllForLearner(learnerId: string): Promise<Investigation[]> {
     return [...this.rows.values()].filter((r) => r.learnerId === learnerId);
   }
+}
+
+/**
+ * A case this learner has already closed. The post-test is gated on there being one, so
+ * every test about the test itself starts from a repository holding this.
+ */
+export function closedCase(learnerId = LEARNER): Investigation {
+  return Investigation.fromSnapshot({
+    learnerId,
+    scenarioId: SCENARIO_ID,
+    solvedQuestionIds: [LOCATE_Q, EXPLAIN_Q, SOLVE_Q],
+    revealedHints: {},
+    wrongAttempts: 0,
+    vulnerableLinesUnlocked: true,
+    ethicalChoiceId: GOOD_CHOICE,
+    completed: true,
+    startedAt: new Date('2026-09-01T09:00:00.000Z'),
+    completedAt: new Date('2026-09-01T09:30:00.000Z'),
+  });
 }
 
 export const TEST_ID = 9;

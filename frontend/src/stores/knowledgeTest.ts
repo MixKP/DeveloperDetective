@@ -1,6 +1,6 @@
 import { defineStore } from 'pinia';
 import { computed, ref } from 'vue';
-import type { AttemptResult, KnowledgeTestResponse } from '@dd/shared';
+import type { AttemptResult, KnowledgeTestResponse, TestEligibility } from '@dd/shared';
 import { api, ApiError } from '@/api/client';
 
 export const useKnowledgeTestStore = defineStore('knowledgeTest', () => {
@@ -11,9 +11,16 @@ export const useKnowledgeTestStore = defineStore('knowledgeTest', () => {
 
   const attempt = computed<AttemptResult | null>(() => test.value?.attempt ?? null);
   const taken = computed(() => attempt.value !== null);
+  const eligibility = computed<TestEligibility | null>(() => test.value?.eligibility ?? null);
+  /** Locked means the server withheld the questions, not that the client is hiding them. */
+  const locked = computed(() => eligibility.value !== null && !eligibility.value.eligible);
 
+  /**
+   * Cached once the test is open, re-fetched while it is locked: closing a case is what
+   * opens it, and that happens in a different part of the app entirely.
+   */
   async function fetch(force = false) {
-    if (!force && test.value) return;
+    if (!force && test.value && !locked.value) return;
     loading.value = true;
     error.value = null;
     try {
@@ -58,5 +65,17 @@ export const useKnowledgeTestStore = defineStore('knowledgeTest', () => {
     error.value = null;
   }
 
-  return { test, attempt, taken, loading, submitting, error, fetch, submit, reset };
+  return {
+    test,
+    attempt,
+    taken,
+    eligibility,
+    locked,
+    loading,
+    submitting,
+    error,
+    fetch,
+    submit,
+    reset,
+  };
 });

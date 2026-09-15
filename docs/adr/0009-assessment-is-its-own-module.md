@@ -41,9 +41,16 @@ reading.
 ## Consequences
 
 - One more module to wire, and a second seed command (`db:seed` runs both).
-- An attempt is per learner, not per case, so the debrief renders a block owned by
-  `assessment` rather than a stage of the run. A learner who finishes both cases still
-  sits the test once.
+- An attempt is per learner, not per case, so the test is rendered on the dashboard rather
+  than as a stage of any run — the debrief only points at it. A learner who finishes every
+  case still sits the test once.
+- Being per learner does not make it available from the first minute: it measures what the
+  platform taught, so `Eligibility` keeps it shut until a case is closed. The intent is
+  every case, and `CASES_REQUIRED` is set to 1 because the catalog is longer than one
+  sitting — raising it tightens the gate with nothing else to change.
+- The gate needs a fact `investigation` owns. `assessment` reads it through its own
+  `CaseProgress` port, implemented in `composition.ts` from the other module's public API,
+  so the two still share no table, no transaction, and no aggregate.
 - `test_attempts` carries `unique(learner_id, test_id)`, so the one-sitting rule holds even
   if two tabs submit at the same moment — the aggregate refuses the retake it can see, and
   the constraint refuses the one it cannot.

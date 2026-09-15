@@ -1,29 +1,58 @@
-import type { AttemptResult, KnowledgeTestResponse, TestVariant } from '@dd/shared';
+import type {
+  AttemptResult,
+  KnowledgeTestResponse,
+  TestEligibility,
+  TestVariant,
+} from '@dd/shared';
 import type { Attempt } from '../domain/Attempt.js';
+import { Eligibility } from '../domain/Eligibility.js';
 import { NotFoundError } from './errors.js';
-import type { AttemptRepository, KnowledgeTestCatalog, TestAnswerKey } from './ports.js';
+import type {
+  AttemptRepository,
+  CaseProgress,
+  KnowledgeTestCatalog,
+  TestAnswerKey,
+} from './ports.js';
 
 export class GetKnowledgeTest {
   constructor(
     private readonly catalog: KnowledgeTestCatalog,
     private readonly answerKey: TestAnswerKey,
     private readonly attempts: AttemptRepository,
+    private readonly cases: CaseProgress,
   ) {}
 
   async execute(learnerId: string, variant: TestVariant): Promise<KnowledgeTestResponse> {
     const test = await this.catalog.findByVariant(variant);
     if (!test) throw new NotFoundError('Knowledge test');
 
-    const attempt = await this.attempts.find(learnerId, test.id);
+    const [attempt, eligibility] = await Promise.all([
+      this.attempts.find(learnerId, test.id),
+      this.eligibilityOf(learnerId),
+    ]);
+
+    // A locked test does not ship its questions at all. Hiding them in the client would
+    // leave them one devtools tab away, and the gate exists so that nobody sits the
+    // post-test before the platform has had anything to teach them.
+    const released = eligibility.eligible || attempt !== null;
 
     return {
       slug: test.slug,
       variant: test.variant,
       title: test.title,
       description: test.description,
-      questions: test.questions,
+      questions: released ? test.questions : [],
+      eligibility: toView(eligibility),
       attempt: attempt ? await this.resultFor(test.id, attempt) : null,
     };
+  }
+
+  private async eligibilityOf(learnerId: string): Promise<Eligibility> {
+    const [completed, total] = await Promise.all([
+      this.cases.countCompleted(learnerId),
+      this.cases.countCases(),
+    ]);
+    return Eligibility.assess(completed, total);
   }
 
   /**
@@ -47,4 +76,13 @@ export class GetKnowledgeTest {
       answers,
     };
   }
+}
+
+function toView(eligibility: Eligibility): TestEligibility {
+  return {
+    eligible: eligibility.eligible,
+    casesCompleted: eligibility.casesCompleted,
+    casesRequired: eligibility.casesRequired,
+    casesTotal: eligibility.casesTotal,
+  };
 }

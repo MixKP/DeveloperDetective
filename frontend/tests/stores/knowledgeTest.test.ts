@@ -55,9 +55,16 @@ const test = (over: Partial<KnowledgeTestResponse> = {}): KnowledgeTestResponse 
       ],
     },
   ],
+  eligibility: { eligible: true, casesCompleted: 1, casesRequired: 1, casesTotal: 7 },
   attempt: null,
   ...over,
 });
+
+const locked = (): KnowledgeTestResponse =>
+  test({
+    questions: [],
+    eligibility: { eligible: false, casesCompleted: 0, casesRequired: 1, casesTotal: 7 },
+  });
 
 const attempt = (): SubmitAttemptResponse['attempt'] => ({
   score: 1,
@@ -102,6 +109,21 @@ describe('the knowledge test store', () => {
 
     expect(getKnowledgeTest).toHaveBeenCalledTimes(1);
     expect(store.taken).toBe(false);
+  });
+
+  it('re-fetches while the test is locked, because closing a case is what opens it', async () => {
+    getKnowledgeTest.mockResolvedValueOnce(locked()).mockResolvedValueOnce(test());
+    const store = useKnowledgeTestStore();
+
+    await store.fetch();
+    expect(store.locked).toBe(true);
+    expect(store.test?.questions).toHaveLength(0);
+
+    await store.fetch();
+
+    expect(getKnowledgeTest).toHaveBeenCalledTimes(2);
+    expect(store.locked).toBe(false);
+    expect(store.test?.questions).toHaveLength(2);
   });
 
   it('sends one response per question, in the order the test asks them', async () => {

@@ -2,6 +2,7 @@ import type { Express } from 'express';
 import {
   createAssessmentModule,
   type AttemptRepository,
+  type CaseProgress,
   type KnowledgeTestCatalog,
   type TestAnswerKey,
 } from './modules/assessment/index.js';
@@ -28,6 +29,23 @@ export interface ApiDeps {
   verifyToken?: VerifyToken;
 }
 
+/**
+ * The post-test is gated on how much of the platform a learner has been through, which
+ * is a fact `investigation` owns and `assessment` must not read for itself (ADR 0009).
+ * The two modules meet here, each through its public API, and neither knows the other.
+ */
+function caseProgressFrom(deps: ApiDeps): CaseProgress {
+  return {
+    async countCompleted(learnerId) {
+      const runs = await deps.investigations.findAllForLearner(learnerId);
+      return runs.filter((run) => run.completed).length;
+    },
+    async countCases() {
+      return (await deps.catalog.listSummaries()).length;
+    },
+  };
+}
+
 export function createApiApp(deps: ApiDeps): Express {
   const requireLearner = createRequireLearner(deps.verifyToken);
 
@@ -42,6 +60,7 @@ export function createApiApp(deps: ApiDeps): Express {
     tests: deps.tests,
     testAnswerKey: deps.testAnswerKey,
     attempts: deps.attempts,
+    cases: caseProgressFrom(deps),
     requireLearner,
   });
 

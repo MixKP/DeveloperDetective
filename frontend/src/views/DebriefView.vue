@@ -1,34 +1,22 @@
 <script setup lang="ts">
-import { computed, ref, watchEffect } from 'vue';
+import { computed, ref } from 'vue';
 import { useRouter } from 'vue-router';
 import { Home } from 'lucide-vue-next';
 import BaseButton from '@/components/ui/BaseButton.vue';
 import BaseCard from '@/components/ui/BaseCard.vue';
 import DebriefPanel from '@/components/feature/DebriefPanel.vue';
 import EthicalDecision from '@/components/feature/EthicalDecision.vue';
-import KnowledgeCheck from '@/components/feature/KnowledgeCheck.vue';
 import { ApiError } from '@/api/client';
-import { useKnowledgeTestStore } from '@/stores/knowledgeTest';
 import { useProgressStore } from '@/stores/progress';
 import { useScenariosStore } from '@/stores/scenarios';
 
 const router = useRouter();
 const scenarios = useScenariosStore();
 const progress = useProgressStore();
-const knowledgeTest = useKnowledgeTestStore();
 
 const scenario = computed(() => scenarios.current);
 const busy = ref(false);
 const error = ref<string | null>(null);
-
-/**
- * The knowledge check is only fetched once the case is closed. Loading it earlier
- * would put the questions in the page while the ethical decision is still open, and
- * they telegraph which choice the platform considers defensible.
- */
-watchEffect(() => {
-  if (scenario.value?.state.completed) void knowledgeTest.fetch();
-});
 
 async function choose(choiceId: number) {
   busy.value = true;
@@ -40,15 +28,6 @@ async function choose(choiceId: number) {
     error.value = e instanceof ApiError ? e.message : 'Could not record that decision.';
   } finally {
     busy.value = false;
-  }
-}
-
-async function submitKnowledgeCheck(answers: Record<number, string>) {
-  try {
-    await knowledgeTest.submit(answers);
-  } catch {
-    // The store holds the message, and a refused submission has already refreshed
-    // the attempt it was refused for.
   }
 }
 </script>
@@ -83,17 +62,10 @@ async function submitKnowledgeCheck(answers: Record<number, string>) {
       @choose="choose"
     />
 
-    <template v-if="scenario.state.completed && knowledgeTest.test">
-      <p v-if="knowledgeTest.error" class="text-sm text-sev-critical">{{ knowledgeTest.error }}</p>
-      <KnowledgeCheck
-        :test="knowledgeTest.test"
-        :attempt="knowledgeTest.attempt"
-        :busy="knowledgeTest.submitting"
-        @submit="submitKnowledgeCheck"
-      />
-    </template>
-
-    <div v-if="scenario.state.completed" class="flex justify-end">
+    <!-- The post-test belongs to the learner rather than to this case, so it lives on
+         the dashboard and opens once a case is closed. -->
+    <div v-if="scenario.state.completed" class="flex flex-wrap items-center justify-end gap-3">
+      <p class="mr-auto text-sm text-muted">The ethics post-test is waiting on the dashboard.</p>
       <BaseButton variant="secondary" @click="router.push('/')">
         <Home class="size-4" aria-hidden="true" />
         Back to open cases

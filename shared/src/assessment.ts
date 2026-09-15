@@ -41,12 +41,27 @@ export const attemptResultSchema = z.object({
 });
 export type AttemptResult = z.infer<typeof attemptResultSchema>;
 
+/**
+ * Why the test is open, or is not. The post-test measures what the platform taught, so
+ * it stays shut until the learner has actually been through some of it: `casesRequired`
+ * is what the gate asks for today, `casesTotal` what the course would ideally ask for.
+ */
+export const testEligibilitySchema = z.object({
+  eligible: z.boolean(),
+  casesCompleted: z.number().int().nonnegative(),
+  casesRequired: z.number().int().positive(),
+  casesTotal: z.number().int().nonnegative(),
+});
+export type TestEligibility = z.infer<typeof testEligibilitySchema>;
+
 export const knowledgeTestResponseSchema = z.object({
   slug: z.string(),
   variant: testVariantSchema,
   title: z.string(),
   description: z.string(),
+  /** Empty while the test is locked: the questions are withheld, not merely hidden. */
   questions: z.array(testQuestionViewSchema),
+  eligibility: testEligibilitySchema,
   /** The learner's one attempt, or null if they have not taken it yet. */
   attempt: attemptResultSchema.nullable(),
 });
