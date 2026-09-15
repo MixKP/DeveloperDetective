@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed } from 'vue';
+import { computed, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
 import { ArrowRight, Mail, Target } from 'lucide-vue-next';
 import BaseButton from '@/components/ui/BaseButton.vue';
@@ -10,6 +10,18 @@ const router = useRouter();
 const scenarios = useScenariosStore();
 
 const scenario = computed(() => scenarios.current);
+
+/**
+ * The editor chunk is ~600 kB gzipped and the next click on this page is almost
+ * always "Open the repository", so it is fetched while the brief is being read
+ * rather than after the click. Idle-time and per-route on purpose: a shared chunk
+ * would make every page in the app pay for it.
+ */
+onMounted(() => {
+  const prefetch = () => void import('@/views/InvestigateView.vue');
+  if ('requestIdleCallback' in window) window.requestIdleCallback(prefetch, { timeout: 2000 });
+  else setTimeout(prefetch, 500);
+});
 
 const received = computed(() => {
   const raw = scenario.value?.brief.receivedAt;

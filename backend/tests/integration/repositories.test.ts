@@ -51,6 +51,12 @@ describe('DrizzleScenarioCatalog', () => {
     }
   });
 
+  it('counts the catalog without reading it', async () => {
+    const summaries = await catalog.listSummaries();
+
+    expect(await catalog.countScenarios()).toBe(summaries.length);
+  });
+
   it('NEVER returns answer-key fields, whatever the shape of the query', async () => {
     const content = await catalog.findById(sqlInjectionId);
 
@@ -179,6 +185,27 @@ describe('DrizzleInvestigationRepository', () => {
     const all = await investigations.findAllForLearner(learnerId);
     expect(all).toHaveLength(1);
     expect(all[0]!.hintsUsed).toBe(1);
+  });
+
+  it("counts closed cases in the database, and only this learner's", async () => {
+    const learnerId = randomUUID();
+    const other = randomUUID();
+    const content = await catalog.findById(sqlInjectionId);
+    const ids = content!.questions.map((q) => q.id);
+
+    const open = Investigation.start(learnerId, sqlInjectionId);
+    await investigations.save(open);
+    expect(await investigations.countCompleted(learnerId)).toBe(0);
+
+    for (const [index, id] of ids.entries()) {
+      open.recordAnswer(id, index === 0 ? 'locate' : 'explain', true);
+    }
+    open.submitEthicalChoice(content!.ethicalChoices[0]!.id, ids.length);
+    open.complete(ids.length);
+    await investigations.save(open);
+
+    expect(await investigations.countCompleted(learnerId)).toBe(1);
+    expect(await investigations.countCompleted(other)).toBe(0);
   });
 
   it('keeps learners isolated from each other', async () => {

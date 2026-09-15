@@ -36,13 +36,8 @@ export interface ApiDeps {
  */
 function caseProgressFrom(deps: ApiDeps): CaseProgress {
   return {
-    async countCompleted(learnerId) {
-      const runs = await deps.investigations.findAllForLearner(learnerId);
-      return runs.filter((run) => run.completed).length;
-    },
-    async countCases() {
-      return (await deps.catalog.listSummaries()).length;
-    },
+    countCompleted: (learnerId) => deps.investigations.countCompleted(learnerId),
+    countCases: () => deps.catalog.countScenarios(),
   };
 }
 

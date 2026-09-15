@@ -146,6 +146,9 @@ export class StubCatalog implements ScenarioCatalog {
   async listSummaries(): Promise<ScenarioSummaryContent[]> {
     return [SUMMARY];
   }
+  async countScenarios(): Promise<number> {
+    return 1;
+  }
   async findById(scenarioId: number): Promise<ScenarioContent | null> {
     return scenarioId === SCENARIO_ID ? CONTENT : null;
   }
@@ -226,6 +229,11 @@ export class InMemoryInvestigationRepository implements InvestigationRepository 
 
   async findAllForLearner(learnerId: string): Promise<Investigation[]> {
     return [...this.rows.values()].filter((r) => r.learnerId === learnerId);
+  }
+
+  async countCompleted(learnerId: string): Promise<number> {
+    const runs = await this.findAllForLearner(learnerId);
+    return runs.filter((run) => run.completed).length;
   }
 }
 

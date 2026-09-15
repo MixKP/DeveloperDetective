@@ -9,6 +9,10 @@ import type {
 
 export interface ScenarioCatalog {
   listSummaries(): Promise<ScenarioSummaryContent[]>;
+
+  /** How many cases the catalog holds. Asked on every post-test load, so it counts
+   *  in the database rather than by reading every summary to measure the array. */
+  countScenarios(): Promise<number>;
   findById(scenarioId: number): Promise<ScenarioContent | null>;
   findQuestion(questionId: number): Promise<QuestionContent | null>;
   countQuestions(scenarioId: number): Promise<number>;

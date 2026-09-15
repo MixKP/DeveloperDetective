@@ -50,6 +50,11 @@ export class DrizzleScenarioCatalog implements ScenarioCatalog {
     return rows;
   }
 
+  async countScenarios(): Promise<number> {
+    const [row] = await this.db.select({ total: sql<number>`count(*)::int` }).from(scenarios);
+    return row?.total ?? 0;
+  }
+
   async findById(scenarioId: number): Promise<ScenarioContent | null> {
     const [scenario] = await this.db
       .select({

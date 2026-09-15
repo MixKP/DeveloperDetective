@@ -1,4 +1,4 @@
-import { and, eq } from 'drizzle-orm';
+import { and, eq, sql } from 'drizzle-orm';
 import type { Database } from '../../../platform/db/client.js';
 import type { InvestigationRepository } from '../application/ports.js';
 import { Investigation, type InvestigationSnapshot } from '../domain/Investigation.js';
@@ -23,6 +23,15 @@ export class DrizzleInvestigationRepository implements InvestigationRepository {
     const rows = await this.db.select().from(progress).where(eq(progress.learnerId, learnerId));
 
     return rows.map((row) => Investigation.fromSnapshot(toSnapshot(row)));
+  }
+
+  async countCompleted(learnerId: string): Promise<number> {
+    const [row] = await this.db
+      .select({ total: sql<number>`count(*)::int` })
+      .from(progress)
+      .where(and(eq(progress.learnerId, learnerId), eq(progress.completed, true)));
+
+    return row?.total ?? 0;
   }
 
   async save(run: Investigation): Promise<void> {
