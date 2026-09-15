@@ -11,6 +11,7 @@
   ],
   "scripts": {
     "build": "npm run build -w @dd/shared && npm run build -w @dd/backend && npm run build -w @dd/frontend",
+    "prepare": "node scripts/prepare.mjs",
     "dev": "npm run dev -w @dd/backend & npm run dev -w @dd/frontend",
     "dev:api": "npm run dev -w @dd/backend",
     "dev:web": "npm run dev -w @dd/frontend",

@@ -59,11 +59,16 @@ export class QuestionDraw {
       take(available(group, false)[0]);
     }
 
-    // Anything still owed on a test longer than the number of principles.
+    // Anything still owed on a sitting longer than the Code, one question per
+    // principle per pass. Draining a single principle's shelf instead would empty
+    // it for good, and the next sitting would have to repeat that principle while
+    // unseen questions sat unused elsewhere.
     for (const freshOnly of [true, false]) {
-      for (const group of groups) {
-        for (const candidate of available(group, freshOnly)) {
-          if (!take(candidate)) break;
+      for (let spread = true; spread && picked.length < count;) {
+        spread = false;
+        for (const group of groups) {
+          if (picked.length >= count) break;
+          if (take(available(group, freshOnly)[0])) spread = true;
         }
       }
     }

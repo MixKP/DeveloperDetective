@@ -13,10 +13,13 @@ Course project for _Ethics and Professionalism for Software Engineers (953420)_.
 
 ## Quick start
 
+Node 22.9 or newer, and Docker running. Nothing else to install: the Supabase CLI comes
+from `devDependencies`, so `npx supabase` is the version this repo pins.
+
 ```bash
 cp .env.example .env       # already points at the local stack; nothing to fill in
-npm install
-npx supabase start         # PostgreSQL, Studio and friends, in Docker
+npm install                # also compiles @dd/shared — see below
+npx supabase start         # PostgreSQL, Studio and auth, in Docker
 npm run db:migrate         # explicit deploy step, not run on container boot
 npm run db:seed            # idempotent; safe to re-run
 docker compose up --build
@@ -33,12 +36,23 @@ The app is then at **http://localhost:8080**, and Supabase Studio at
 
 ### Local development without Docker
 
+The database still comes from `npx supabase start`; only the two app processes run on the
+host.
+
 ```bash
 npm run dev:api           # http://localhost:3000
 npm run dev:web           # http://localhost:5173, proxies /api to :3000
+npm run dev               # both at once
 ```
 
 `npx supabase stop` when you are done; add `--no-backup` to discard the local data.
+
+**`@dd/shared` is consumed as compiled JavaScript**, so it has to exist before the API, the
+tests or the typechecker can run — a fresh clone that skips it fails with
+`ERR_MODULE_NOT_FOUND` on `@dd/shared/dist/index.js`. `npm install` builds it for you
+(`scripts/prepare.mjs`, run by npm's `prepare` hook). While editing the contract itself,
+either rebuild it with `npm run build -w @dd/shared` or keep `npm run dev -w @dd/shared`
+running, which watches and recompiles.
 
 ---
 
@@ -268,8 +282,8 @@ pressure to do the easy thing:
 
 | Command                    | Does                                                                        |
 | -------------------------- | --------------------------------------------------------------------------- |
-| `npm test`                 | 214 tests — domain, application, API, content, stores. No database required |
-| `npm run test:integration` | 28 tests — Drizzle repositories and the seed against real PostgreSQL        |
+| `npm test`                 | 225 tests — domain, application, API, content, stores. No database required |
+| `npm run test:integration` | 30 tests — Drizzle repositories and the seed against real PostgreSQL        |
 | `npm run test:e2e`         | 12 tests — the full journey in a real browser (Playwright)                  |
 | `npm run test:all`         | All three levels                                                            |
 | `npm run typecheck`        | All three workspaces                                                        |
@@ -357,8 +371,8 @@ curl -s -X POST -H 'Content-Type: application/json' \
 Then walk the flow in the browser: dashboard → brief → investigate → quiz (take a hint, miss
 once) → debrief → ethical choice. The score should read **75**. The **Post-test** button in
 the top bar then opens the ethics post-test — locked until that first case was closed. It
-asks one question per principle of the Code, reports which principles the wrong answers
-turned on, and can be sat again against a different draw
+asks ten questions drawn across all eight principles of the Code, reports which principles
+the wrong answers turned on, and can be sat again against a different draw
 ([ADR 0010](docs/adr/0010-the-post-test-can-be-retaken.md)).
 
 ---

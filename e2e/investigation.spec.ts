@@ -168,17 +168,17 @@ test.describe('the learner journey', () => {
     await expect(check).not.toContainText('to unlock this');
     await check.getByRole('button', { name: 'Start the knowledge check' }).click();
 
-    // One question per principle of the Code, drawn from a larger bank.
+    // Ten questions drawn across the eight principles of the Code.
     const items = check.locator('ol > li');
     // Each question item leads with a row holding its number and its prompt.
     const prompts = () => check.locator('ol > li > div > p').allInnerTexts();
-    await expect(items).toHaveCount(8);
+    await expect(items).toHaveCount(10);
     const firstSitting = await prompts();
 
-    for (let i = 0; i < 8; i += 1) {
+    for (let i = 0; i < 10; i += 1) {
       await items.nth(i).locator('label').first().click();
     }
-    await expect(check.getByText('8 of 8 answered')).toBeVisible();
+    await expect(check.getByText('10 of 10 answered')).toBeVisible();
 
     await check.getByRole('button', { name: 'Submit the knowledge check' }).click();
 
@@ -196,9 +196,9 @@ test.describe('the learner journey', () => {
     // The retake deals a different hand from the same bank (ADR 0010).
     await check.getByRole('button', { name: /Sit it again/ }).click();
     await expect(check.getByText('Attempt 2', { exact: true })).toBeVisible();
-    await expect(items).toHaveCount(8);
+    await expect(items).toHaveCount(10);
     const secondSitting = await prompts();
-    expect(secondSitting).toHaveLength(8);
+    expect(secondSitting).toHaveLength(10);
     expect(secondSitting).not.toEqual(firstSitting);
     expect(secondSitting.filter((prompt) => firstSitting.includes(prompt))).toEqual([]);
   });

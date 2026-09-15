@@ -2,8 +2,8 @@
   "slug": "core-professional-ethics",
   "variant": "post",
   "title": "Core professional ethics",
-  "description": "Questions on the responsibilities an engineer carries when they find a defect, based on the IEEE-CS/ACM Software Engineering Code of Ethics and Professional Practice. Each sitting draws one question per principle from a larger bank, so a retake asks a different set.",
-  "questionsPerAttempt": 8,
+  "description": "Ten questions on the responsibilities an engineer carries when they find a defect, based on the IEEE-CS/ACM Software Engineering Code of Ethics and Professional Practice. Each sitting is drawn from a larger bank and covers all eight principles, so a retake asks a different set.",
+  "questionsPerAttempt": 10,
   "guidance": {
     "public": "Re-read Principle 1. The recurring test is whether the people who bear the risk know about it: disclosure comes before the fix, before the schedule and before the announcement, and approval is something you withhold while a known danger is live. When you are unsure, ask who carries the consequence and whether they have been told.",
     "client-and-employer": "Re-read Principle 2. Loyalty to a client or employer means telling them what is true about the software they are paying for, keeping what you learn inside the engagement, and using their property only as authorised. Authority above you never transfers responsibility for a statement you personally make.",

@@ -184,7 +184,7 @@ export default ts.config(
   },
 
   {
-    files: ['**/*.config.{js,mjs,ts}', '**/vite.config.ts', '**/drizzle.config.ts'],
+    files: ['**/*.config.{js,mjs,ts}', '**/vite.config.ts', '**/drizzle.config.ts', 'scripts/**'],
     languageOptions: { globals: { ...globals.node } },
     rules: {
       'no-restricted-imports': 'off',

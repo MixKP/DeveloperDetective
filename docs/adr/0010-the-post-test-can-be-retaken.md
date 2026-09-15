@@ -21,8 +21,9 @@ wrong answers turned on leaves the learner to do the diagnosis themselves.
 draw from a larger bank.**
 
 - The bank holds **three questions per principle** (24). One sitting asks
-  `questionsPerAttempt` of them — currently 8, one per principle — so every sitting still
-  supports the claim that the test covers the whole Code.
+  `questionsPerAttempt` of them — 10, the length the course brief asks for. The draw gives
+  every principle one question before any principle gets a second, so the ten always cover
+  the whole Code, and which two principles are asked twice varies by sitting.
 - `QuestionDraw` spends **unseen questions first**, so the second and third sittings share
   no question with the first. Once the bank is exhausted, sittings repeat rather than
   shrink.

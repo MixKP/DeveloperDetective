@@ -80,6 +80,23 @@ describe('QuestionDraw', () => {
     expect(new Set(drawn.map(principleOf)).size).toBe(3);
   });
 
+  it('spends the bank evenly, so a ten-question retake still finds everything unseen', () => {
+    // Ten per sitting means two principles are asked twice. Taking both extras from
+    // one principle would exhaust it and force a repeat next time.
+    let seen = new Set<number>();
+
+    for (const sitting of [1, 2]) {
+      const drawn = QuestionDraw.select(POOL, seen, 10, sittingSeed(LEARNER, 9, sitting));
+
+      expect(drawn).toHaveLength(10);
+      expect(new Set(drawn.map(principleOf)).size).toBe(8);
+      expect(drawn.filter((id) => seen.has(id))).toEqual([]);
+      seen = new Set([...seen, ...drawn]);
+    }
+
+    expect(seen.size).toBe(20);
+  });
+
   it('asks a longer sitting than the Code has principles without repeating a question', () => {
     const drawn = QuestionDraw.select(POOL, new Set(), 12, sittingSeed(LEARNER, 9, 1));
 

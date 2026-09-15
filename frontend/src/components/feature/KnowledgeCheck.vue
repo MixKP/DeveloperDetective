@@ -130,7 +130,7 @@ const letter = (index: number) => String.fromCharCode(65 + index);
         </span>
         <div>
           <p class="font-medium">
-            {{ test.questions.length }} questions · one per principle of the Code
+            {{ test.questions.length }} questions · every principle of the Code
           </p>
           <p class="mt-1.5 max-w-xl text-sm leading-relaxed text-muted">
             No hints, and a sitting is submitted whole — this measures what you take away from the
